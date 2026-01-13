@@ -1,0 +1,20 @@
+
+{
+    "frame_id": "00123",
+    "timestamp": "2025-09-24T10:45:10.3Z",
+    "camera_position": {
+      "latitude": 63.4305,
+      "longitude": 10.3951,
+      "altitude_m": 1200
+    },
+    "camera_orientation": {
+      "azimuth_deg": 135.0,
+      "elevation_deg": -10.5,
+      "roll_deg": 2.0
+    },
+    "field_of_view": {
+      "horizontal_deg": 30.0,
+      "vertical_deg": 20.0
+    }
+  }
+  

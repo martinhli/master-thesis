@@ -1,0 +1,4 @@
+repository "NSM_Project/NSM_Project@20067480475759@cloud"
+  path "/"
+    br "/main"
+    co "/main"

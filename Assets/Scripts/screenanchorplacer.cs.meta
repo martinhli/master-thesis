@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: b74132f534a4a4334a7969869e956802
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - planeManager: {instanceID: 0}
+  - screenAnchorPrefab: {fileID: 4605944949998443590, guid: ffecd75ef42094a508a3c77e370d0e6c, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

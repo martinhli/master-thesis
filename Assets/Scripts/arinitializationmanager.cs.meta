@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: bb70dbcd2fc124813a008a532e2f9c6a
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - arSession: {instanceID: 0}
+  - arCamera: {instanceID: 0}
+  - overlaySystem: {instanceID: 0}
+  - parser: {instanceID: 0}
+  - eoJsonFile: {fileID: 4900000, guid: 85c1e0932e0b9464aad18234b791556e, type: 3}
+  - aisJsonFile: {fileID: 4900000, guid: 8d385872cf2b047acad54f07b0aff2a1, type: 3}
+  - screenAnchor: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
