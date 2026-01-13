@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: 985c8607a889e4c7da587f97f7803271
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - eoCamera: {instanceID: 0}
+  - labelPrefab: {fileID: 935244166639115488, guid: 86d1c520a7a9c46c89223cc7433687dd, type: 3}
+  - screenAnchor: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
