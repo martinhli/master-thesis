@@ -7,7 +7,7 @@ using Data;
 public class FFmpegReader : MonoBehaviour
 {
     [Header("Stream Settings")]
-    public string streamUrl = "/Users/martinlindheim/Documents/AGM/files/unity/NSM_Project/Assets/TestData/TestData/EOIR_video_11-40/EON.ts";// Placeholder URL, gets supplied from videostream
+    public string streamUrl = "Assets/TestData/TestData/EOIR_video_11-40/EON.ts";// Placeholder URL, gets supplied from videostream
     public Renderer videoRenderer; // Assign to a Unity Quad or RawImage
     public AISOverlay overlaySystem;
     public dataparser parser;
@@ -56,6 +56,23 @@ public class FFmpegReader : MonoBehaviour
 
 
         Debug.Log("FFWrap version: " + FFmpegNative.Version);
+        // Resolve relative asset paths to absolute paths
+        if (!streamUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase) &&
+            !Path.IsPathRooted(streamUrl))
+        {
+            var trimmed = streamUrl.StartsWith("Assets/", StringComparison.OrdinalIgnoreCase) ? streamUrl.Substring("Assets/".Length) : streamUrl;
+
+            string candidate = Path.Combine(Application.dataPath, trimmed.TrimStart('/', '\\'));
+            if (File.Exists(candidate))
+            {
+                streamUrl = candidate;
+                Debug.Log($"FFmpegReader: resolved streamUrl to '{streamUrl}'");
+            }
+            else
+            {
+                Debug.LogWarning($"FFmpegReader: streamUrl not found at '{candidate}'. Using original value '{streamUrl}'.");
+            }
+        }
 
         int rc = FFmpegNative.ffw_open(streamUrl, out _ctx, out _width, out _height);
         Debug.Log($"ffw_open rc={rc}, size={_width}x{_height}");

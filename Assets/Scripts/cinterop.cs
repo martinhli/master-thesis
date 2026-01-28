@@ -184,6 +184,9 @@ public static class CInterop
         double r10 = ux, r11 = uy, r12 = uz;
         double r20 = fx, r21 = fy, r22 = fz;
 
+        if (fovHdeg > 0 && fovHdeg < 3.2) fovHdeg *= (180.0 / Math.PI);
+        if (fovVdeg > 0 && fovVdeg < 3.2) fovVdeg *= (180.0 / Math.PI);
+
         double tanHalfFovH = Math.Tan(0.5 * fovHdeg * Deg2Rad);
         double tanHalfFovV = Math.Tan(0.5 * fovVdeg * Deg2Rad);
 

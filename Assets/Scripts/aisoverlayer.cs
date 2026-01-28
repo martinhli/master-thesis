@@ -3,11 +3,16 @@ using UnityEngine;
 using UnityEngine.UI;
 using Data;
 
+using UnityEngine;
+
 public class AISOverlay : MonoBehaviour
 {
     [Header("Refs")]
     public Camera eoCamera;
     public RectTransform screenTransform;
+    public Transform videoQuad;
+    public int videoWidth = 1920;
+    public int videoHeight = 1080;
 
     [Header("Visual")]
     public GameObject annotationVisualPrefab;     // assign AIS_AnnotationVisual
@@ -24,6 +29,14 @@ public class AISOverlay : MonoBehaviour
     {
         
         ClearLabels();
+        if (eoCamera == null) {
+            Debug.LogError("AISOverlay: eoCamera not assigned");
+            return; 
+        }
+        if (videoQuad == null) {
+            Debug.LogError("AISOverlay: videoQuad not assigned");
+            return; 
+        }
         if (ships == null) {
             Debug.LogWarning("AISOverlay: ships list is null");
             return;
@@ -61,17 +74,6 @@ public class AISOverlay : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             var point = screenPoints[i];
-
-            bool invalidPoint = (Mathf.Abs(point.x) > 9000f || Mathf.Abs(point.y) > 9000f);
-
-            bool offScreen = point.x < 0 || point.x > Screen.width || point.y < 0 || point.y > Screen.height;
-
-            if (invalidPoint || offScreen) {
-                Debug.LogWarning(
-                $"AISOverlay: skipping ship {i} ({ships[i].name}) – invalid or off-screen point ({point.x}, {point.y})");
-                continue;
-            }
-
             validPointCount++;
 
             var uiElement = Instantiate(annotationVisualPrefab, screenTransform);
@@ -85,19 +87,26 @@ public class AISOverlay : MonoBehaviour
                 Destroy(uiElement);
                 continue;
             }
-            var view = uiElement.GetComponent<ShipAnnotationView>();
+            var view = uiElement.GetComponent<ShipInfoHolder>();
             if (view == null)
             {
-                Debug.LogError("AISOverlay: Prefab is missing ShipAnnotationView component.");
+                Debug.LogError("AISOverlay: Prefab is missing ShipInfoHolder component.");
                 Destroy(uiElement);
                 continue;
             }
-            Vector2 screenPos = new Vector2(point.x, point.y);
+
+            float uNorm = point.x / (videoWidth-1f);
+            float vNorm = point.y / (videoHeight-1f);
+
+            vNorm = 1f - vNorm;
+
+            Vector3 localOnQuad = new Vector3(uNorm - 0.5f, vNorm - 0.5f, 0f);
+            Vector3 worldOnQuad = videoQuad.TransformPoint(localOnQuad);
 
             // If your projection treats (0,0) as bottom-left, keep as-is.
             // If it treats (0,0) as top-left, use:
             // screenPos = new Vector2(point.x, Screen.height - point.y);
-
+            Vector2 screenPos = RectTransformUtility.WorldToScreenPoint(eoCamera, worldOnQuad);
             Vector2 localPos;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 screenTransform,      // the Canvas RectTransform
@@ -105,6 +114,17 @@ public class AISOverlay : MonoBehaviour
                 null,                 // camera is null for Screen Space Overlay
                 out localPos
             );
+
+            bool invalidPoint = (Mathf.Abs(point.x) > 9000f || Mathf.Abs(point.y) > 9000f);
+
+            bool offScreen = screenPos.x < 0 || screenPos.x > Screen.width || screenPos.y < 0 || screenPos.y > Screen.height;
+
+            if (invalidPoint || offScreen) {
+                Debug.LogWarning(
+                $"AISOverlay: skipping ship {i} ({ships[i].name}) – invalid or off-screen point ({point.x}, {point.y})");
+                continue;
+            }
+
 
             if (i == 0)
             {
@@ -115,7 +135,7 @@ public class AISOverlay : MonoBehaviour
             Debug.Log($"AISOverlay: ship {i} screen=({point.x:F1},{point.y:F1}) → local=({localPos.x:F1},{localPos.y:F1})");
 
             rect.anchoredPosition = localPos;
-            view.Bind(ships[i]);
+            view.SetShipData(ships[i]);
             spawned.Add(uiElement);
         }
         Debug.Log($"AISOverlay: {validPointCount}/{count} projected points are valid and on-screen.");

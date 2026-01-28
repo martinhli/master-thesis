@@ -3,6 +3,8 @@ using UnityEngine.XR.ARFoundation;
 using Data;
 using System.Collections;
 using System.Collections.Generic;
+using UnityEngine.UI;
+using UnityEngine.EventSystems;
 
 public class ARInitializationManager : MonoBehaviour
 {
@@ -85,11 +87,26 @@ public class ARInitializationManager : MonoBehaviour
             uiCanvas = FindObjectOfType<Canvas>();
             if (uiCanvas == null)
             {
-                Debug.LogError("ARInitializationManager: No Canvas found and uiCanvas is not assigned.");
+                // Create a Canvas at runtime if none exists
+                GameObject canvasGO = new GameObject("AutoCanvas");
+                canvasGO.layer = LayerMask.NameToLayer("UI");
+                uiCanvas = canvasGO.AddComponent<Canvas>();
+                uiCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+                canvasGO.AddComponent<CanvasScaler>();
+                canvasGO.AddComponent<GraphicRaycaster>();
+
+                // Ensure an EventSystem exists for UI interactions
+                if (FindObjectOfType<EventSystem>() == null)
+                {
+                    GameObject es = new GameObject("EventSystem");
+                    es.AddComponent<EventSystem>();
+                    es.AddComponent<StandaloneInputModule>();
+                }
+                Debug.Log("ARInitializationManager: Created runtime Canvas (AutoCanvas).");
             }
         }
 
-        overlaySystem.screenTransform = uiCanvas.GetComponent<RectTransform>();
+        overlaySystem.screenTransform = uiCanvas != null ? uiCanvas.GetComponent<RectTransform>() : null;
         Debug.Log("ARInit: screenTransform assigned from UI Canvas.");
 
         
@@ -107,6 +124,10 @@ public class ARInitializationManager : MonoBehaviour
                 overlaySystem.screenTransform = screenTransform;
                 Debug.Log("ARInitializationManager: OverlayPanel instantiated and assigned to AISOverlay.screenTransform.");
             }
+        }
+        else
+        {
+            Debug.LogWarning("ARInitializationManager: overlayPanelPrefab is not assigned. Using Canvas RectTransform as screenTransform.");
         }
 
         // Wire overlay into parser
