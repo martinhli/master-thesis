@@ -36,9 +36,9 @@ public class ShipInfoHolder : MonoBehaviour
             mmsiText.text = $"MMSI: {ship.mmsi}";
 
         if (speedText != null)
-            speedText.text = $"{ship.speed:F1} kn";
+            speedText.text = $"Speed: {ship.speed:F1} kn";
 
         if (courseText != null)
-            courseText.text = $"{ship.course:F0}°";
+            courseText.text = $"Course: {ship.course:F0}°";
     }
 }

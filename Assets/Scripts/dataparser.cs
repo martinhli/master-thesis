@@ -162,11 +162,11 @@ namespace Data
                                 receivedData = true;
                                 break;
                             case 13: // sensor latitude
-                                metadata.sensorLat = BytesToScaledDouble(valueBytes, -90.0, 90.0);
+                                metadata.sensorLat = ScaleSignedInt(valueBytes, -90.0, 90.0);
                                 receivedData = true;
                                 break;
                             case 14: // sensor longitude
-                                metadata.sensorLon = BytesToScaledDouble(valueBytes, -180.0, 180.0);
+                                metadata.sensorLon = ScaleSignedInt(valueBytes, -180.0, 180.0);
                                 receivedData = true;
                                 break;
                             case 15:  // Sensor altitude
@@ -194,11 +194,11 @@ namespace Data
                                 receivedData = true;
                                 break;
                             case 23: // Frame center lat
-                                metadata.frameCenterLat = BytesToScaledDouble(valueBytes, -90.0, 90.0);
+                                metadata.frameCenterLat = ScaleSignedInt(valueBytes, -90.0, 90.0);
                                 receivedData = true;
                                 break;
                             case 24: // Frame center lon
-                                metadata.frameCenterLon = BytesToScaledDouble(valueBytes, -180.0, 180.0);
+                                metadata.frameCenterLon = ScaleSignedInt(valueBytes, -180.0, 180.0);
                                 receivedData = true;
                                 break;
                             default:
@@ -268,17 +268,12 @@ namespace Data
             if (bytes == null || bytes.Length == 0)
                 return double.NaN;
 
-            int nBits = Math.Min(bytes.Length, 8) * 8;
+            ulong raw = 0;
+            for (int i = 0; i < bytes.Length; i++) 
+                raw = (raw << 8) | bytes[i]; // big endian
 
-            byte[] padded = new byte[8];
-            int srcLen = Math.Min(bytes.Length, 8);
-            Buffer.BlockCopy(bytes, bytes.Length - srcLen, padded, 8 - srcLen, srcLen);
-
-            Array.Reverse(padded);
-            long raw = BitConverter.ToInt64(padded, 0);
-
-            double maxInt = Math.Pow(2, nBits) - 1.0;
-            if (maxInt <= 0) return double.NaN;
+            double maxInt = Math.Pow(2, bytes.Length * 8) - 1;
+            if (maxInt < 0) return double.NaN;    
 
             double scale = (max - min) / maxInt;
             return (raw * scale) + min;
@@ -317,6 +312,33 @@ namespace Data
                 return inner;
             }          
             return klvData; //If the data is not a MISB Universal Key   
+        }
+
+        private static long ReadSignedInt(byte[] bytes)
+        {
+            long value = 0;
+            foreach (var b in bytes)
+            {
+                value = (value << 8) | b;
+            }
+
+            int bits = bytes.Length * 8;
+            long signBit = 1L << (bits - 1);
+            if ((value & signBit) != 0)
+            {
+                long mask = ~((1L << bits) - 1);
+                value |= mask;
+            }
+            return value;
+        }
+
+        private static double ScaleSignedInt(byte[] bytes, double min, double max)
+        {
+            long raw = ReadSignedInt(bytes);
+            double denom = (Math.Pow(2, bytes.Length * 8) - 1.0);
+            double maxPos = Math.Pow(2, bytes.Length * 8 - 1) - 1.0;
+            double minNeg = -Math.Pow(2, bytes.Length * 8 - 1);
+            return (raw - minNeg) * (max - min) / (maxPos - minNeg) + min;
         }
 
         public void SyncData(AISData aisData, KLVFrameMetadata metadata)
@@ -382,6 +404,13 @@ namespace Data
                 aisLatLon
             );
 
+            Debug.Log(
+                $"[ProjectAIS] " +
+                $"sensor=({metadata.sensorLat:F6},{metadata.sensorLon:F6}) | " +
+                $"frameCenter=({metadata.frameCenterLat:F6},{metadata.frameCenterLon:F6}) | " +
+                $"FOV=({metadata.fovHorizontal:F3},{metadata.fovVertical:F3}) | " +
+                $"Video=1920x1080 | Screen={Screen.width}x{Screen.height} | "
+            );
 
             overlaySystem.OverlayShips(aisData.ships, screenPoints);
 
