@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
+using System.Data;
 
 namespace Data
 {
@@ -80,6 +81,93 @@ namespace Data
         public float lon;
         public float course;
         public float speed;
+    }
+
+    [Serializable]
+    public class Track
+    {
+        public string trackid { get; set;}
+
+        public Vector3 position { get; set;}
+        public Vector3 velocity { get; set;}
+
+        public Sensor sources { get; set;}
+
+        public IdentityConfidence identityConfidence { get; set;}
+
+        public DateTime timeStamp { get; set;}
+
+        public TrackState state {get; set;}
+
+        public Track()
+        {
+            trackid = Guid.NewGuid().ToString();
+            sources = new Sensor();
+            identityConfidence = IdentityConfidence.None;
+            timeStamp = DateTime.UtcNow;
+            state = TrackState.Predicted;
+        }
+
+        public void UpdateTrack(Vector3 newposition, Vector3 newvelocity, Sensor newsources, IdentityConfidence newidentityConfidence, TrackState newstate)
+        {
+            position = newposition;
+            velocity = newvelocity;
+            sources = newsources;
+            identityConfidence = newidentityConfidence;
+            timeStamp = DateTime.UtcNow;
+            state = newstate;
+        }
+    }
+
+    [Flags]
+    public enum SensorType
+    {
+        None = 0,
+        AIS = 1 << 0,
+        Radar = 1 << 1,
+        EOIR = 1 << 2
+    }
+
+    public class Sensor
+    {
+        public SensorType activeSensors { get; set;}
+
+        public void addSensor(SensorType sensor)
+        {
+            activeSensors |= sensor;
+        }
+
+        public void removeSensor(SensorType sensor)
+        {
+            activeSensors &= ~sensor;
+        }
+
+        public bool hasSensor(SensorType sensor)
+        {
+            return (activeSensors & sensor) == sensor;
+        }
+
+        public bool hasMultipleSensors()
+        {
+            return (activeSensors & (activeSensors - 1)) != 0;
+        }
+    }
+
+    public enum IdentityConfidence
+    {
+        None, // No identity information
+        Low, // Single sensor, Weak confidence
+        Medium, // Single sensor, Strong confidence
+        High, // Multiple sensors, good correlation with AIS data
+
+        Strong // Multiple sensors, strong correlation with AIS data
+    }
+
+    public enum TrackState
+    {
+        Predicted, // Extrapolated from observation
+        Observed, // Detected by sensor but not yet confirmed
+        Confirmed // Confirmed track
     }
 
     public class dataparser : MonoBehaviour
