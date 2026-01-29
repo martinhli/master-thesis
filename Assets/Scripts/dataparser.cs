@@ -2,8 +2,6 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
-using System.Numerics;
-using System.Diagnostics;
 using System.Data;
 
 namespace Data
