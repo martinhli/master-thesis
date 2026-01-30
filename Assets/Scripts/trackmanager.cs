@@ -27,6 +27,11 @@ namespace Data
         // Track observation count for validation
         private Dictionary<string, int> trackObservationCount = new Dictionary<string, int>();
 
+        // Events for UI updates
+        public event Action<Track> OnTrackCreated;
+        public event Action<Track> OnTrackUpdated;
+        public event Action<Track> OnTrackRemoved;
+
         // Reference to overlay system
         public AISOverlay overlaySystem;
 
@@ -38,13 +43,7 @@ namespace Data
 
         public void ProcessAISData(AISData aisData)
         {
-            if (aisData == null || aisData.ships == null || aisData.ships.Count == 0)
-                return;
- 
-            foreach (var ship in aisData.ships)
-            {
-                ProcessShipData(ship);
-            }
+            
 
         }
 
@@ -62,6 +61,23 @@ namespace Data
         {
             
         }
+
+        private void CreateNewTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        {
+            
+        }
+
+        private void UpdateExistingTrack(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        {
+            
+        }
+
+        public void RemoveInactiveTracks()
+        {
+            
+        }
+
+        
 
 
     }
