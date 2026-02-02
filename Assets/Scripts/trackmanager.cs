@@ -41,6 +41,10 @@ namespace Data
             InvokeRepeating(nameof(RemoveInactiveTracks), 10f, 10f); //remove inactive tracks every 10 seconds
         }
 
+        /// <summary>
+        /// Processing Functions
+        /// </summary>
+
         public void ProcessAISData(AISData aisData)
         {
             if (aisData == null || aisData.ships.Count == 0)
@@ -130,6 +134,15 @@ namespace Data
             }
         }
 
+        /// <summary>
+        /// Track Management Functions
+        /// </summary>
+        /// <param name="trackId"></param>
+        /// <param name="position"></param>
+        /// <param name="velocity"></param>
+        /// <param name="sensorType"></param>
+        /// <param name="shipData"></param>
+
         private void CreateNewTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
             
@@ -155,6 +168,46 @@ namespace Data
             
         }
 
+        /// <summary>
+        /// Track Helper Functions
+        /// </summary>
+        /// <returns></returns>
+
+        public List<Track> GetActiveTracks()
+        {
+            return activeTracks.Values.ToList();
+        }
+
+        public List<Track> GetTracksBySensorType(SensorType sensorType)
+        {
+            return activeTracks.Values.Where(t=> t.sources.hasSensor(sensorType)).ToList();
+        }
+
+        public List<Track> GetConfirmedTracks()
+        {
+            return activeTracks.Values.Where(t => Track.state == TrackState.Confirmed).ToList();
+        }
+
+        public List<Track> GetTrackById(string trackId)
+        {
+            return activeTracks.ContainsKey(trackId) ? activeTracks[trackId] : null;
+        }
+
+       public List<Track> GetTrackByConfidence(IdentityConfidence minimumConfidence)
+        {
+            return activeTracks.Values.Where(t => t.identityConfidence >= minimumConfidence).ToList(); 
+        }
+
+        public int GetTrackCount()
+        {
+            return activeTracks.Count;
+        }
+
+        /// <summary>
+        /// Utility Functions
+        /// </summary>
+        
+        
         
 
 
