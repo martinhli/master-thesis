@@ -168,6 +168,21 @@ namespace Data
             
         }
 
+        public void PredictTrackPositions(float deltaTime)
+        {
+            // Need to implement a prediction algorithm (e.g., Kalman filter) to estimate future positions based on current velocity and heading
+        }
+
+        public void PrintActiveTracks()
+        {
+            
+        }
+
+        public void ClearAllTracks()
+        {
+            
+        }
+
         /// <summary>
         /// Track Helper Functions
         /// </summary>
@@ -206,6 +221,24 @@ namespace Data
         /// <summary>
         /// Utility Functions
         /// </summary>
+        /// 
+        private Vector3 GeoToWorldPosition(float latitude, float longitude)
+        {
+            // Placeholder function to convert geo-coordinates to Unity world position
+            // Need to implement a homogenous transformation
+        }
+
+        private Vector3 CalculateVelocityVector(float course, float speed)
+        {
+            // Convert course from degrees to radians
+            float courseRad = course * MathF.Deg2Rad;
+
+            // Calculate velocity components
+            float vx = speed * MathF.Sin(courseRad);
+            float vz = speed * MathF.Cos(courseRad);
+
+            return new Vector3(vx, 0, vz); // Assuming y=0 for sea level
+        }
         
         
         
