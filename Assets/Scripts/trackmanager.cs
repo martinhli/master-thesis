@@ -43,23 +43,91 @@ namespace Data
 
         public void ProcessAISData(AISData aisData)
         {
-            
+            if (aisData == null || aisData.ships.Count == 0)
+                return;
+
+            foreach (Ship ship in aisData.ships)
+            {
+                ProcessShipData(ship);
+            }
 
         }
 
         public void ProcessShipData(Ship ship)
         {
-            
+            // Make a track ID based on MMSI
+            string trackId = $"AIS_{ship.MMSI}";
+
+            // Convert latitude and longitude to Unity world position
+            Vector3 position = GeoToWorldPosition(ship.lat, ship.lon);
+
+            // Calculate velocity vector from speed and course
+            Vector3 velocity = CalculateVelocityVector(ship.speed, ship.course);
+
+            if (activeTracks.ContainsKey(trackId))
+            {
+                UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
+            }
+            else
+            {
+               // Try to find a correlated track first
+               Track correlatedTrack = FindCorrelatedTrack(position, newSensorType: SensorType.AIS);
+               if (correlatedTrack != null)
+                {
+                    string oldTrackId = correlatedTrack.trackid;
+                    activeTracks.Remove(oldTrackId); // Remove old track because we will update it with new ID
+                    trackObservationCount.Remove(oldTrackId); // Remove old observation count as well
+
+                    correlatedTrack.trackid = trackId; // Update track ID to new AIS-based ID
+                    activeTracks[trackId] = correlatedTrack; // Add updated track back to active tracks
+                    trackObservationCount[trackId] = trackObservationCount.ContainsKey(oldTrackId) ? trackObservationCount[oldTrackId] : 1;
+
+                    MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.AIS, ship);
+                }
+                else
+                {
+                    CreateNewTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
+                }
+            }  
         }
 
         public void ProcessRadarDetection(Vector3 position, Vector3 velocity, DateTime timestamp)
         {
-            
+            //Try to find a correlated track first
+            Track correlatedTrack = FindCorrelatedTrack(position, newSensorType: SensorType.Radar);
+
+            if (correlatedTrack != null)
+            {
+                // Merge with existing track
+                MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.Radar, shipData: null);
+            }
+            else
+            {
+                // Create a new track with an unique ID
+                string trackId = $"Radar_{Guid.NewGuid().ToString().Substring(0, 8)}";
+                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.Radar, shipData: null);
+            }
         }
 
         public void ProcessEOIRDetection(Vector3 position, DateTime timestamp)
         {
-            
+            Vector3 velocity = Vector3.Zero; // EO/IR may not provide velocity info
+
+            //Try to find a correlated track first
+
+            Track correlatedTrack = FindCorrelatedTrack(position, newSensorType: SensorType.EOIR);
+
+            if (correlatedTrack != null)
+            {
+                // Merge with existing track
+                MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.EOIR, shipData: null);
+            }
+            else
+            {
+                // Create a new track with an unique ID
+                string trackId = $"EOIR_{Guid.NewGuid().ToString().Substring(0, 8)}";
+                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.EOIR, shipData: null);
+            }
         }
 
         private void CreateNewTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
@@ -67,9 +135,19 @@ namespace Data
             
         }
 
-        private void UpdateExistingTrack(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void UpdateExistingTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
             
+        }
+
+        private Track FindCorrelatedTrack(Vector3 position, SensorType newSensorType)
+        {
+            
+        }
+
+        private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        {
+            // Going to use Kalman filtering for merging track data from multiple sensors in the future
         }
 
         public void RemoveInactiveTracks()
