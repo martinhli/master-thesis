@@ -1,8 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
+using Data;
 using UnityEngine;
+using Vector3 = UnityEngine.Vector3;
 
 namespace Data
 {
@@ -50,17 +53,17 @@ namespace Data
             if (aisData == null || aisData.ships.Count == 0)
                 return;
 
-            foreach (Ship ship in aisData.ships)
+            foreach (Data.Ship ship in aisData.ships)
             {
                 ProcessShipData(ship);
             }
 
         }
 
-        public void ProcessShipData(Ship ship)
+        public void ProcessShipData(Data.Ship ship)
         {
             // Make a track ID based on MMSI
-            string trackId = $"AIS_{ship.MMSI}";
+            string trackId = $"AIS_{ship.mmsi}";
 
             // Convert latitude and longitude to Unity world position
             Vector3 position = GeoToWorldPosition(ship.lat, ship.lon);
@@ -115,7 +118,7 @@ namespace Data
 
         public void ProcessEOIRDetection(Vector3 position, DateTime timestamp)
         {
-            Vector3 velocity = Vector3.Zero; // EO/IR may not provide velocity info
+            Vector3 velocity = Vector3.zero; // EO/IR may not provide velocity info
 
             //Try to find a correlated track first
 
@@ -143,19 +146,98 @@ namespace Data
         /// <param name="sensorType"></param>
         /// <param name="shipData"></param>
 
-        private void CreateNewTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
-            
+            Track newTrack = new Track
+            (
+                trackId: trackid,
+                position: position,
+                velocity: velocity,
+                sensorType: sensorType,
+                shipData: shipData
+            );
+
+            newTrack.sources.addSensor(sensorType); // Mark the source sensor
+
+            newTrack.identityConfidence = DetermineIdentityConfidence(newTrack);
+
+            activeTracks[trackId] = newTrack;
+            trackObservationCount[trackId] = 1; // First observation
+
+            OnTrackCreated?.Invoke(newTrack); // Trigger event for UI update
         }
 
         private void UpdateExistingTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
-            
+            Track track = activeTracks[trackId];
+
+            track.position = position;
+            track.velocity = velocity;
+            track.timeStamp = DateTime.UtcNow;
+
+            // Add sensor source if not already present
+            if (!track.sources.hasSensor(sensorType))
+            {
+                track.sources.addSensor(sensorType);
+            }
+
+            // Update confidence
+            Data.IdentityConfidence oldConfidence = track.identityConfidence;
+            track.identityConfidence = DetermineIdentityConfidence(track);
+
+            if (oldConfidence != track.identityConfidence)
+            {
+                // Confidence level changed, could trigger additional actions if needed
+            }
+
+            // Increment observation count
+            if(trackObservationCount.ContainsKey(trackId))
+            {
+                trackObservationCount[trackId]++;
+
+                // Confirm track if a threshold is reached
+                if (trackObservationCount[trackId] >= confirmationThreshold &&
+                    track.state != TrackState.Confirmed)
+                {
+                    track.state = TrackState.Confirmed;
+                }
+            }
+
+            if (shipData != null)
+            {
+                track.shipData = shipData; // Update ship data if available
+            }
+
+            OnTrackUpdated?.Invoke(track); // Trigger event for UI update
         }
 
         private Track FindCorrelatedTrack(Vector3 position, SensorType newSensorType)
         {
-            
+            Track bestMatch = null;
+            float minDistance = float.MaxValue;
+
+            foreach (var entry in activeTracks)
+            {
+                Track track = entry.Value;
+
+                // Skip if same sensor type
+                if (track.sources.hasSensor(newSensorType))
+                    continue;
+
+                // Check time correlation
+                TimeSpan timeDiff = DateTime.UtcNow - track.timeStamp;
+                if (timeDiff.TotalSeconds > correlationDistanceThreshold)
+                    continue;
+
+                // Check spatial correlation
+                float distance = Vector3.Distance(position, track.Position);
+                if (distance < correlationDistanceThreshold && distance < minDistance)
+                {
+                    minDistance = distance;
+                    bestMatch = track;
+                }
+            }
+            return bestMatch;
         }
 
         private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
@@ -165,7 +247,23 @@ namespace Data
 
         public void RemoveInactiveTracks()
         {
-            
+            List<string> tracksToRemove = new List<string>();
+
+            foreach (var entry in activeTracks)
+            {
+                TimeSpan timeSinceUpdate = DateTime.UtcNow - entry.Value.timeStamp;
+                if (timeSinceUpdate.TotalSeconds > trackInactivityTimeout)
+                {
+                    tracksToRemove.Add(entry.Key); 
+                }
+            }
+
+            foreach (string trackId in tracksToRemove)
+            {
+                activeTracks.Remove(trackId);
+                trackObservationCount.Remove(trackId);
+                OnTrackRemoved?.Invoke(trackId); // Trigger event for UI update
+            }
         }
 
         public void PredictTrackPositions(float deltaTime)
@@ -175,11 +273,25 @@ namespace Data
 
         public void PrintActiveTracks()
         {
+            Debug.Log($"Active Tracks Count: {activeTracks.Count}");
+            foreach (var entry in activeTracks)
+            {
+                Track track = entry.Value;
+                string shipInfo = track.shipData != null ? track.shipData.name : "Unknown";
+                Debug.Log($"Track ID: {track.trackid}, Position: {track.position}, Velocity: {track.velocity}, Confidence: {track.identityConfidence}, Ship: {shipInfo}");
+            }
             
         }
 
         public void ClearAllTracks()
         {
+            foreach (var id in activeTracks.Keys.ToList())
+            {
+                OnTrackRemoved?.Invoke(id);
+            }
+
+            activeTracks.Clear();
+            trackObservationCount.Clear();
             
         }
 
@@ -200,10 +312,11 @@ namespace Data
 
         public List<Track> GetConfirmedTracks()
         {
-            return activeTracks.Values.Where(t => Track.state == TrackState.Confirmed).ToList();
+            
+            return activeTracks.Values.Where(t => t.state == TrackState.Confirmed).ToList();
         }
 
-        public List<Track> GetTrackById(string trackId)
+        public Track GetTrackById(string trackId)
         {
             return activeTracks.ContainsKey(trackId) ? activeTracks[trackId] : null;
         }
@@ -222,6 +335,34 @@ namespace Data
         /// Utility Functions
         /// </summary>
         /// 
+        /// 
+        private IdentityConfidence DetermineIdentityConfidence(Track track)
+        {
+            if (!track.hasMultipleSensors())
+            {
+                // Single sensor source
+                if (track.sources.hasSensor(Data.SensorType.AIS))
+                {
+                    return Data.IdentityConfidence.Medium; // AIS alone provides medium confidence
+                }
+                else
+                {
+                    return Data.IdentityConfidence.Low; // Radar or EO/IR alone provides low confidence
+                }
+            }
+            else
+            {
+                // Multiple sensor sources
+                if (track.sources.hasSensor(Data.SensorType.AIS))
+                {
+                    return Data.IdentityConfidence.Strong; // AIS combined with other sensors provides strong confidence
+                }
+                else
+                {
+                    return Data.IdentityConfidence.High; // Radar + EO/IR provides high confidence
+                }
+            }
+        }
         private Vector3 GeoToWorldPosition(float latitude, float longitude)
         {
             // Placeholder function to convert geo-coordinates to Unity world position
@@ -231,7 +372,7 @@ namespace Data
         private Vector3 CalculateVelocityVector(float course, float speed)
         {
             // Convert course from degrees to radians
-            float courseRad = course * MathF.Deg2Rad;
+            float courseRad = course * MathF.PI / 180f;
 
             // Calculate velocity components
             float vx = speed * MathF.Sin(courseRad);
