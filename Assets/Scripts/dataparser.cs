@@ -99,6 +99,8 @@ namespace Data
 
         public TrackState state {get; set;}
 
+        public Ship shipData { get; set;}
+
         public Track()
         {
             trackid = Guid.NewGuid().ToString();
