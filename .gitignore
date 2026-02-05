@@ -48,4 +48,6 @@ Thumbs.db
 
 # Exclude specific folders and files
 Assets/TestData/TestData/
-iOS/Libraries/libiPhone-lib.a
+iOS/Libraries/libiPhone-lib.a#Unity crash dumps
+mono_crash*
+*.blob
