@@ -6,6 +6,7 @@ using System.Numerics;
 using Data;
 using UnityEngine;
 using Vector3 = UnityEngine.Vector3;
+using Debug = UnityEngine.Debug;
 
 namespace Data
 {
@@ -148,28 +149,25 @@ namespace Data
 
         private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
-            Track newTrack = new Track
-            (
-                trackId: trackid,
-                position: position,
-                velocity: velocity,
-                sensorType: sensorType,
-                shipData: shipData
-            );
+            Track newTrack = new Track();
+
+            newTrack.trackid = trackid;
+            newTrack.position = position;
+            newTrack.velocity = velocity;
 
             newTrack.sources.addSensor(sensorType); // Mark the source sensor
 
             newTrack.identityConfidence = DetermineIdentityConfidence(newTrack);
 
-            activeTracks[trackId] = newTrack;
-            trackObservationCount[trackId] = 1; // First observation
+            activeTracks[trackid] = newTrack;
+            trackObservationCount[trackid] = 1; // First observation
 
             OnTrackCreated?.Invoke(newTrack); // Trigger event for UI update
         }
 
-        private void UpdateExistingTrack(string trackId, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void UpdateExistingTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
-            Track track = activeTracks[trackId];
+            Track track = activeTracks[trackid];
 
             track.position = position;
             track.velocity = velocity;
@@ -191,12 +189,12 @@ namespace Data
             }
 
             // Increment observation count
-            if(trackObservationCount.ContainsKey(trackId))
+            if(trackObservationCount.ContainsKey(trackid))
             {
-                trackObservationCount[trackId]++;
+                trackObservationCount[trackid]++;
 
                 // Confirm track if a threshold is reached
-                if (trackObservationCount[trackId] >= confirmationThreshold &&
+                if (trackObservationCount[trackid] >= minObservationsForValidTrack &&
                     track.state != TrackState.Confirmed)
                 {
                     track.state = TrackState.Confirmed;
@@ -230,7 +228,7 @@ namespace Data
                     continue;
 
                 // Check spatial correlation
-                float distance = Vector3.Distance(position, track.Position);
+                float distance = Vector3.Distance(position, track.position);
                 if (distance < correlationDistanceThreshold && distance < minDistance)
                 {
                     minDistance = distance;
@@ -247,22 +245,23 @@ namespace Data
 
         public void RemoveInactiveTracks()
         {
-            List<string> tracksToRemove = new List<string>();
+            List<string> tracksToRemove = new List<string>(); // Store track IDs to remove
 
             foreach (var entry in activeTracks)
             {
                 TimeSpan timeSinceUpdate = DateTime.UtcNow - entry.Value.timeStamp;
                 if (timeSinceUpdate.TotalSeconds > trackInactivityTimeout)
                 {
-                    tracksToRemove.Add(entry.Key); 
+                    tracksToRemove.Add(entry.Key); // Add track ID to removal list
                 }
             }
 
             foreach (string trackId in tracksToRemove)
             {
+                Track removedTrack = activeTracks[trackId]; // Store removed track for event trigger
                 activeTracks.Remove(trackId);
                 trackObservationCount.Remove(trackId);
-                OnTrackRemoved?.Invoke(trackId); // Trigger event for UI update
+                OnTrackRemoved?.Invoke(removedTrack); // Trigger event for UI update
             }
         }
 
@@ -287,7 +286,8 @@ namespace Data
         {
             foreach (var id in activeTracks.Keys.ToList())
             {
-                OnTrackRemoved?.Invoke(id);
+                Track removedTrack = activeTracks[id];
+                OnTrackRemoved?.Invoke(removedTrack);
             }
 
             activeTracks.Clear();
@@ -338,7 +338,7 @@ namespace Data
         /// 
         private IdentityConfidence DetermineIdentityConfidence(Track track)
         {
-            if (!track.hasMultipleSensors())
+            if (!track.sources.hasMultipleSensors())
             {
                 // Single sensor source
                 if (track.sources.hasSensor(Data.SensorType.AIS))
@@ -367,6 +367,13 @@ namespace Data
         {
             // Placeholder function to convert geo-coordinates to Unity world position
             // Need to implement a homogenous transformation
+
+            // Current solution: simple planar projection
+            float x = longitude * 111320f;
+            float z = latitude * 110540f;
+            float y = 0f; // Assuming sea level for now
+
+            return new Vector3(x, y, z);
         }
 
         private Vector3 CalculateVelocityVector(float course, float speed)
