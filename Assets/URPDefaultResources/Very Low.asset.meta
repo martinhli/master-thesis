@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: bc5d3c58fbc02458c878b9aec8c19bfc
+=======
+guid: 693ac79727e434101bcb5537657f3b3c
+>>>>>>> origin/feature/vr-scene
 NativeFormatImporter:
   externalObjects: {}
   mainObjectFileID: 11400000
