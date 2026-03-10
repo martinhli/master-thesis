@@ -1,11 +1,9 @@
 using UnityEngine;
 using Data;
 using System.Collections;
-using System.ComponentModel.DataAnnotations;
-using System.Drawing;
-using System.Numerics;
-using System.Diagnostics;
-using System.Threading.Tasks.Dataflow;
+
+using Color = UnityEngine.Color;
+using Vector3 = UnityEngine.Vector3;
 
 [RequireComponent(typeof(Rigidbody))]
 public class SimulatedShip : MonoBehaviour
@@ -27,20 +25,24 @@ public class SimulatedShip : MonoBehaviour
     [Range(0.1f, 10f)]
     public float radarCrossSection = 1f;
 
+    [Tooltip("AIS detection/visualization range in meters")]
+    public float aisRange = 5000f;
+
     [Header("Movement Parameters")]
     public bool enableAutopilot = true;
     public float autopilotSpeed = 5f; // Speed in m/s
     public float autopilotCourse = 0f; // Course in degrees (0 = North, 90 = East)
 
     [Header("Visual Representation")]
-    public Color shipColor = Color.Gray;
+    public Color shipColor = Color.gray;
 
     private Rigidbody _rb;
     private MeshRenderer _renderer;
+    private MaterialPropertyBlock _propBlock;
     private Vector3 _lastPosition;
     private float _lastUpdateTime;
 
-    private enum ShipType
+    public enum ShipType
     {
         Cargo,
         Tanker,
@@ -54,11 +56,15 @@ public class SimulatedShip : MonoBehaviour
     {
         _rb = GetComponent<Rigidbody>();
         _renderer = GetComponent<MeshRenderer>();
+        _propBlock = new MaterialPropertyBlock();
 
-        // Set initial color
-        if (_renderer != null)
+        // Apply optional tint without material instancing, preserving imported texture bindings.
+        if (_renderer != null && shipColor != Color.gray)
         {
-            _renderer.material.color = shipColor;
+            _renderer.GetPropertyBlock(_propBlock);
+            _propBlock.SetColor("_BaseColor", shipColor);
+            _propBlock.SetColor("_Color", shipColor);
+            _renderer.SetPropertyBlock(_propBlock);
         }
         // Initialize last position and time for movement calculations
         _lastPosition = transform.position;
@@ -84,13 +90,13 @@ public class SimulatedShip : MonoBehaviour
         if (enableAutopilot && _rb != null)
         {
             // Simple autopilot logic: move forward at a constant speed and maintain course
-            float courseRad = autopilotCourse * 180f / Mathf.PI; // Convert degrees to radians
+            float courseRad = autopilotCourse * Mathf.Deg2Rad;
             Vector3 direction = new Vector3(Mathf.Sin(courseRad), 0, Mathf.Cos(courseRad));
 
-            _rb.velocity = direction * autopilotSpeed;
+            _rb.linearVelocity = direction * autopilotSpeed;
 
             // Rotate the ship to face the direction of movement
-            if (direction != Vector3.Zero)
+            if (direction != Vector3.zero)
             {
                 Quaternion targetRotation = Quaternion.LookRotation(direction);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 2f);
@@ -102,7 +108,7 @@ public class SimulatedShip : MonoBehaviour
     {
         if (_rb != null)
         {
-            return _rb.velocity;
+            return _rb.linearVelocity;
         }
         else
         {
@@ -127,7 +133,7 @@ public class SimulatedShip : MonoBehaviour
         Vector3 velocity = GetVelocity();
         if (velocity.magnitude < 0.1f) return 0f;
 
-        float courseRad = MathF.Atan2(velocity.x, velocity.z) * 180f / Mathf.PI; // Convert radians to degrees
+        float courseRad = Mathf.Atan2(velocity.x, velocity.z) * Mathf.Rad2Deg;
         if (courseRad < 0) courseRad += 360f; // Ensure course is between 0 and 360
         return courseRad;
     }
@@ -140,8 +146,8 @@ public class SimulatedShip : MonoBehaviour
     public Ship ToShipData()
     {
         Vector3 pos = transform.position;
-        float lat = pos.Z / 110540f;
-        float lon = pos.X / 111320f;
+        float lat = pos.z / 110540f;
+        float lon = pos.x / 111320f;
 
         return new Ship
         {
@@ -159,8 +165,8 @@ public class SimulatedShip : MonoBehaviour
     {
         // MMSI is a 9-digit number where the first digit is between 2 and 7
         int firstDigit = Random.Range(2, 8);
-        int remainingDigits = Random.Range(10000000, 99999999);
-        return firstDigit.ToString() + remainingDigits.Substring(0, 8);
+        int remainingDigits = Random.Range(100000000, 999999999);
+        return $"{firstDigit}{remainingDigits:D8}";
     }
 
     private string GenerateRandomIMO()
@@ -176,7 +182,7 @@ public class SimulatedShip : MonoBehaviour
     void OnDrawGizmos()
     {
         // Draw ship direction
-        Gizmos.color = Color.Blue;
+        Gizmos.color = Color.blue;
         Vector3 forward = transform.forward * 20f;
         Gizmos.DrawRay(transform.position, forward);
 
@@ -184,7 +190,7 @@ public class SimulatedShip : MonoBehaviour
         Vector3 velocity = GetVelocity();
         if (velocity.magnitude > 0.1f)
         {
-            Gizmos.color = Color.Green;
+            Gizmos.color = Color.green;
             Gizmos.DrawRay(transform.position, velocity * 10f);
         }
     }

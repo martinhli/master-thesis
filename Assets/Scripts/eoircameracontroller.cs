@@ -1,13 +1,6 @@
 using UnityEngine;
-using UnityEngine.InputSystem;
+using System.Collections.Generic;
 using Data;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Diagnostics;
-using System.Threading.Tasks.Dataflow;
-using System.Numerics;
-using System.Drawing;
-
 public class EOIRCameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
@@ -35,8 +28,8 @@ public class EOIRCameraController : MonoBehaviour
 
     [Header("Detection Parameters")]
 
-    [Tooltip("YOLO detector")]
-    public YOLODetector yoloDetector;
+    //[Tooltip("YOLO detector")]
+    //public YOLODetector yoloDetector;
 
     [Tooltip("Raycast detector")]
     public bool useRaycastDetection = true;
@@ -186,20 +179,20 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip detectedShip = null;
 
         // First try YOLO detection if enabled
-        if (yoloDetector != null)
-        {
-            shipDetected = yoloDetector.DetectShipInFrame(); //Need to implement this function in YOLODetector
+        // if (yoloDetector != null)
+        // {
+        //     shipDetected = yoloDetector.DetectShipInFrame(); //Need to implement this function in YOLODetector
 
-            if (shipDetected)
-            {
-                detectedShip = GetShipInView();
-            }
-        }
+        //     if (shipDetected)
+        //     {
+        //         detectedShip = GetShipInView();
+        //     }
+        // }
 
         // If YOLO didn't detect anything and raycast detection is enabled, try raycast
-        else if (useRaycastDetection)
+        if (useRaycastDetection)
         {
-            detectedShip = RayCastDetectShip(); // Need to implement this function to raycast from camera center and check for SimulatedShip hits within detectionRange
+            detectedShip = RaycastDetectShip(); // Need to implement this function to raycast from camera center and check for SimulatedShip hits within detectionRange
             shipDetected = (detectedShip != null);
         }
 
@@ -227,7 +220,7 @@ public class EOIRCameraController : MonoBehaviour
                 // Check if ship is centered in the camera view
                 Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(ship.transform.position);
                 float centerDistance = Vector2.Distance(
-                    new Vector2(viewPortPoint.X, viewPortPoint.Y),
+                    new Vector2(viewPortPoint.x, viewPortPoint.y),
                     new Vector2(0.5f, 0.5f)
                 );
                 // Ship has to be within 20% of the center of the view to be considered a valid detection
@@ -291,13 +284,13 @@ public class EOIRCameraController : MonoBehaviour
         // Flash the screen white to indicate a successful capture
         flashEffect.enabled = true;
         Color flashColor = flashEffect.color;
-        flashColor.A = 0.8f;
+        flashColor.a = 0.8f;
         flashEffect.color = flashColor;
 
         yield return new WaitForSeconds(0.1f); // Flash duration
 
         // Fade out the flash
-        flashColor.A = 0f;
+        flashColor.a = 0f;
         flashEffect.color = flashColor;
         flashEffect.enabled = false;
     }
@@ -333,12 +326,12 @@ public class EOIRCameraController : MonoBehaviour
         if (eoirCamera == null) return;
 
         // Draw camera FOV
-        Gizmos.color = Color.Yellow;
+        Gizmos.color = Color.yellow;
         Gizmos.matrix = eoirCamera.transform.localToWorldMatrix;
-        Gizmos.DrawFrustum(Vector3.Zero, eoirCamera.fieldOfView, detectionRange, 0.1f, eoirCamera.aspect);
+        Gizmos.DrawFrustum(Vector3.zero, eoirCamera.fieldOfView, detectionRange, 0.1f, eoirCamera.aspect);
 
         // Draw center ray for raycast detection
-        Gizmos.color = Color.Red;
+        Gizmos.color = Color.red;
         Ray ray = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         Gizmos.DrawRay(ray.origin, ray.direction * detectionRange);
     }

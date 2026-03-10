@@ -2,12 +2,6 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Data;
-using System.Threading.Tasks.Dataflow;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
-using System.Numerics;
-using System.ComponentModel.DataAnnotations;
-using System.Drawing;
 
 public class SensorSimulator : MonoBehaviour
 {
@@ -137,7 +131,7 @@ public class SensorSimulator : MonoBehaviour
             float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within AIS range
-            if (distanceToShip <= aisRange) continue;
+            if (distanceToShip > aisRange) continue;
 
             // Create Ship data object with error applied@
             Ship aisShipData = CreateShipData(ship, aisPositionError);
@@ -169,13 +163,13 @@ public class SensorSimulator : MonoBehaviour
             float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within radar range
-            if (distanceToShip <= radarRange) continue;
+            if (distanceToShip > radarRange) continue;
 
             Vector3 toShip = ship.transform.position - aircraftTransform.position;
 
             // Check if within radar azimuth coverage
             float azimuth = Vector3.SignedAngle(aircraftTransform.forward, toShip, Vector3.up);
-            if (MathF.Abs(azimuth) > radarAzimuthCoverage / 2f) continue;
+            if (Mathf.Abs(azimuth) > radarAzimuthCoverage / 2f) continue;
 
             // Add radar position error
             Vector3 detectedPosition = ship.transform.position + GetRandomPositionError(radarPositionError);
@@ -195,14 +189,14 @@ public class SensorSimulator : MonoBehaviour
     {
         if (eoirCamera == null) return;
 
-        foreach (ShimulatedShip ship in simulatedShips)
+        foreach (SimulatedShip ship in simulatedShips)
         {
             if (ship == null || !ship.gameObject.activeInHierarchy) continue;
 
              float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within EOIR range
-            if (distanceToShip <= eoirRange) continue;
+            if (distanceToShip > eoirRange) continue;
 
             Vector3 toShip = ship.transform.position - aircraftTransform.position;
 
@@ -260,7 +254,10 @@ public class SensorSimulator : MonoBehaviour
 
     private Vector2 WorldToLatLon(Vector3 worldPos)
     {
-        // Need to convert from Unity's world coordinates to lat/lon.
+        // Simple local planar approximation used elsewhere in the project.
+        float lat = worldPos.z / 110540f;
+        float lon = worldPos.x / 111320f;
+        return new Vector2(lat, lon);
     }
 
     /// <summary>

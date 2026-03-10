@@ -1,27 +1,25 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TextMeshPro;
-using System.Threading.Tasks.Dataflow;
-using System.Numerics;
-using System.Drawing;
+using TMPro;
+using Data;
 
 public class tracklabeler : MonoBehaviour
 {
-    public TextMeshPro labelText;
+    public TMP_Text labelText;
     public Track track;
 
     void Update()
     {
-        if (track != null) return;
+        if (track == null) return;
 
         // Position label above the track
-        transform.position = track.transform.position + Vector3.up * 10f;
+        float labelHeight = 20f; // Adjust as needed based on your label's height in world units
+        transform.position = track.position + Vector3.up * labelHeight;
 
         // Make label face the camera
-        transform.lookAt(Camera.main.transform);
-        transform.Rotate(0, 180f, 0);
+        transform.rotation = Camera.main.transform.rotation;
 
         // Update label text with track info
+        UpdateLabel();
     }
 
     void UpdateLabel()

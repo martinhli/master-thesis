@@ -397,7 +397,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 10303, guid: 0000000000000000f000000000000000, type: 0}
+  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -419,6 +419,7 @@ MeshRenderer:
   m_SortingLayerID: 0
   m_SortingLayer: 0
   m_SortingOrder: 0
+  m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &644560257
 MeshFilter:
@@ -606,6 +607,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::AISOverlay
   eoCamera: {fileID: 0}
   screenTransform: {fileID: 0}
+  videoQuad: {fileID: 0}
+  videoWidth: 1920
+  videoHeight: 1080
   annotationVisualPrefab: {fileID: 2791708517317912222, guid: 6d721ed0185c14a288aec88ae5709e2d, type: 3}
 --- !u!4 &857207534
 Transform:
@@ -1126,6 +1130,13 @@ MonoBehaviour:
   metricsEnabled: 1
   logToConsole: 1
   maxClickAssociationDistance: 100
+  currentCondition: Default
+  conditionLabel: {fileID: 0}
+  wideFovClicks: 0
+  zoomedInClicks: 0
+  fastPanClicks: 0
+  clickCountLabel: {fileID: 0}
+  metricsFolderName: MetricsLogs
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

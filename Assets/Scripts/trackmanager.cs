@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Numerics;
 using Data;
 using UnityEngine;
 using Vector3 = UnityEngine.Vector3;
@@ -101,13 +99,16 @@ namespace Data
 
         public void ProcessRadarDetection(Vector3 position, Vector3 velocity, DateTime timestamp)
         {
-            //Try to find a correlated track first
-            Track correlatedTrack = FindCorrelatedTrack(position, newSensorType: SensorType.Radar);
+            // Try to find a correlated track first, allow radar-to-radar correlation.
+            Track correlatedTrack = FindCorrelatedTrack(position, newSensorType: SensorType.Radar, allowSameSensor: true);
 
             if (correlatedTrack != null)
             {
-                // Merge with existing track
-                MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.Radar, shipData: null);
+                // Update existing radar track directly for now (Kalman merge can replace this later).
+                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.Radar, shipData: null);
+
+                // TODO: Merge close radar tracks 
+                //MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.Radar, shipData: null);
             }
             else
             {
@@ -209,7 +210,7 @@ namespace Data
             OnTrackUpdated?.Invoke(track); // Trigger event for UI update
         }
 
-        private Track FindCorrelatedTrack(Vector3 position, SensorType newSensorType)
+        private Track FindCorrelatedTrack(Vector3 position, SensorType newSensorType, bool allowSameSensor = false)
         {
             Track bestMatch = null;
             float minDistance = float.MaxValue;
@@ -219,12 +220,12 @@ namespace Data
                 Track track = entry.Value;
 
                 // Skip if same sensor type
-                if (track.sources.hasSensor(newSensorType))
+                if (!allowSameSensor && track.sources.hasSensor(newSensorType))
                     continue;
 
                 // Check time correlation
                 TimeSpan timeDiff = DateTime.UtcNow - track.timeStamp;
-                if (timeDiff.TotalSeconds > correlationDistanceThreshold)
+                if (timeDiff.TotalSeconds > correlationTimeThreshold)
                     continue;
 
                 // Check spatial correlation
@@ -240,7 +241,7 @@ namespace Data
 
         private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
-            // Going to use Kalman filtering for merging track data from multiple sensors in the future
+            //TO DO: Going to use Kalman filtering for merging track data from multiple sensors in the future
         }
 
         public void RemoveInactiveTracks()
@@ -379,11 +380,11 @@ namespace Data
         private Vector3 CalculateVelocityVector(float course, float speed)
         {
             // Convert course from degrees to radians
-            float courseRad = course * MathF.PI / 180f;
+            float courseRad = course * Mathf.Deg2Rad;
 
             // Calculate velocity components
-            float vx = speed * MathF.Sin(courseRad);
-            float vz = speed * MathF.Cos(courseRad);
+            float vx = speed * Mathf.Sin(courseRad);
+            float vz = speed * Mathf.Cos(courseRad);
 
             return new Vector3(vx, 0, vz); // Assuming y=0 for sea level
         }
