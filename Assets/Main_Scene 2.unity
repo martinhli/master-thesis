@@ -644,12 +644,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb70dbcd2fc124813a008a532e2f9c6a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ARInitializationManager
-  arSession: {fileID: 1807799332}
-  arCamera: {fileID: 1186557780}
-  overlaySystem: {fileID: 857207533}
-  parser: {fileID: 799591111}
-  eoJsonFile: {fileID: 4900000, guid: 85c1e0932e0b9464aad18234b791556e, type: 3}
-  aisJsonFile: {fileID: 4900000, guid: 8d385872cf2b047acad54f07b0aff2a1, type: 3}
+  arSession: {fileID: 0}
+  arCamera: {fileID: 0}
+  overlaySystem: {fileID: 0}
+  parser: {fileID: 0}
+  eoJsonFile: {fileID: 0}
+  aisJsonFile: {fileID: 0}
   eoCamera: {fileID: 0}
   screenTransform: {fileID: 0}
   ffmpegreader: {fileID: 0}
@@ -1449,12 +1449,12 @@ MonoBehaviour:
   aisPositionError: 10
   radarUpdateInterval: 4
   radarRange: 45000
-  radarPositionError: 50
+  radarPositionError: 30
   radarAzimuthCoverage: 360
   eoirUpdateInterval: 1
   eoirRange: 20000
   eoirPositionError: 20
-  eoirFOV: 60
+  eoirFOV: 75
   aisEnabled: 0
   radarEnabled: 1
   eoirEnabled: 0
@@ -1760,6 +1760,7 @@ MonoBehaviour:
   validationInterval: 1
   maxPixelError: 50
   maxAngularError: 2
+  maxPositionError: 30
   showDebugLines: 1
   showErrorText: 1
   stats:
@@ -1774,6 +1775,7 @@ MonoBehaviour:
     average3DError: 0
     maxPixelError: 0
     worstTrackId: 
+    errorPositionCount: 0
 --- !u!4 &1711396309
 Transform:
   m_ObjectHideFlags: 0

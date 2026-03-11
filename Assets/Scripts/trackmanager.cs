@@ -155,6 +155,7 @@ namespace Data
             newTrack.trackid = trackid;
             newTrack.position = position;
             newTrack.velocity = velocity;
+            newTrack.shipData = shipData;
 
             newTrack.sources.addSensor(sensorType); // Mark the source sensor
 

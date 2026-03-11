@@ -32,6 +32,7 @@ public class aroverlayvalidator : MonoBehaviour
     public ValidationStats stats = new ValidationStats();
 
     private List<ValidationResult> validationHistory = new List<ValidationResult>();
+    private readonly Dictionary<string, System.DateTime> lastValidatedTrackTimestamps = new Dictionary<string, System.DateTime>();
 
     [System.Serializable]
     public class ValidationResult
@@ -63,6 +64,10 @@ public class aroverlayvalidator : MonoBehaviour
 
         public float maxPixelError = 0f;
         public string worstTrackId = "";
+
+        // Samples where the 3D position error exceeded maxPositionError.
+        // Tracked separately — does NOT affect overlay accuracy score.
+        public int errorPositionCount = 0;
 
         public float accuracyPercentage { get; set;}
     }
@@ -100,6 +105,17 @@ public class aroverlayvalidator : MonoBehaviour
             if (track == null)
                 continue;
 
+            // Validate each track only when a new sensor update arrives.
+            // This avoids repeatedly scoring stale positions between updates.
+            if (string.IsNullOrEmpty(track.trackid))
+                continue;
+
+            if (lastValidatedTrackTimestamps.TryGetValue(track.trackid, out var lastValidatedTimestamp)
+                && track.timeStamp <= lastValidatedTimestamp)
+            {
+                continue;
+            }
+
             // Find the actual SimulatedShip in the scene that corresponds to this track
             SimulatedShip groundTruth = FindGroundTruthShip(track);
 
@@ -107,6 +123,7 @@ public class aroverlayvalidator : MonoBehaviour
             {
                 // Validate the track overlay against the ground truth ship
                 ValidateTrackOverlay(track, groundTruth);
+                lastValidatedTrackTimestamps[track.trackid] = track.timeStamp;
             }
         }
 
@@ -153,14 +170,19 @@ public class aroverlayvalidator : MonoBehaviour
         // Update running stats
         stats.totalValidations++;
 
+        // Accuracy uses all three criteria at sensor-update time.
         bool isAccurate = result.pixelError <= maxPixelError
-                          && result.angularError <= maxAngularError
-                          && result.positionError <= maxPositionError;
+                  && result.angularError <= maxAngularError
+                  && result.positionError <= maxPositionError;
 
         if (isAccurate)
             stats.accurateProjections++;
         else
             stats.inaccurateProjections++;
+
+        // Track number of times position error exceeds threshold for diagnostics.
+        if (result.positionError > maxPositionError)
+            stats.errorPositionCount++;
 
         stats.totalPixelError += result.pixelError;
         stats.totalAngularError += result.angularError;
@@ -261,7 +283,8 @@ public class aroverlayvalidator : MonoBehaviour
     {
         Debug.Log("=== AR OVERLAY VALIDATION REPORT ===");
         Debug.Log($"Total Validations: {stats.totalValidations}");
-        Debug.Log($"Accuracy: {stats.accuracyPercentage:F1}% (pixel <= {maxPixelError:F1}px, angular <= {maxAngularError:F2}deg, 3D <= {maxPositionError:F1}m)");
+        Debug.Log($"Overlay Accuracy: {stats.accuracyPercentage:F1}% (pixel <= {maxPixelError:F1}px, angular <= {maxAngularError:F2}°)");
+        Debug.Log($"Position Error: {stats.errorPositionCount}/{stats.totalValidations} samples exceeded {maxPositionError:F1}m (sensor update lag, not overlay error)");
         Debug.Log($"Average Pixel Error: {stats.averagePixelError:F2}px");
         Debug.Log($"Average Angular Error: {stats.averageAngularError:F4}°");
         Debug.Log($"Average 3D Position Error: {stats.average3DError:F2}m");
@@ -273,6 +296,7 @@ public class aroverlayvalidator : MonoBehaviour
     {
         stats = new ValidationStats();
         validationHistory.Clear();
+        lastValidatedTrackTimestamps.Clear();
         Debug.Log("[Validation] Statistics reset");
     }
 

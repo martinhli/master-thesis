@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 using Data;
 
+using Random = UnityEngine.Random;
+
 public class SensorSimulator : MonoBehaviour
 {
     [Header("References")]
@@ -29,10 +31,10 @@ public class SensorSimulator : MonoBehaviour
     public float radarUpdateInterval = 4f;
 
     [Tooltip("Radar range in meters")]
-    public float radarRange = 80000f; // 80 km is typical for ship radars
+    public float radarRange = 45000f; // 45 km is typical for ship radars
 
     [Tooltip("Radar position error in meters")]
-    public float radarPositionError = 50f;
+    public float radarPositionError = 30f;
 
     [Tooltip("Radar azimuth coverage in degrees")]
     public float radarAzimuthCoverage = 360f;
@@ -171,8 +173,9 @@ public class SensorSimulator : MonoBehaviour
             float azimuth = Vector3.SignedAngle(aircraftTransform.forward, toShip, Vector3.up);
             if (Mathf.Abs(azimuth) > radarAzimuthCoverage / 2f) continue;
 
-            // Add radar position error
-            Vector3 detectedPosition = ship.transform.position + GetRandomPositionError(radarPositionError);
+            // Interpret radarPositionError as a 2-sigma setting and convert to 1-sigma for Gaussian sampling.
+            float radarSigma = radarPositionError * 0.5f;
+            Vector3 detectedPosition = ship.transform.position + GetRandomPositionError(radarSigma);
 
             // Calculate velocity
             Vector3 velocity = ship.GetVelocity();
@@ -245,10 +248,22 @@ public class SensorSimulator : MonoBehaviour
         };
     }
 
-    private Vector3 GetRandomPositionError(float magnitude)
+    private Vector3 GetRandomPositionError(float standardDeviation)
     {
-        float errorX = UnityEngine.Random.Range(-magnitude, magnitude);
-        float errorZ = UnityEngine.Random.Range(-magnitude, magnitude);
+        // Box-Muller transform for Gaussian distribution
+        float u1 = Random.value;
+        float u2 = Random.value;
+        float randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);
+        
+        // For 2D error (X and Z)
+        float errorX = randStdNormal * standardDeviation;
+        
+        // Generate second independent Gaussian
+        u1 = Random.value;
+        u2 = Random.value;
+        randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);
+        float errorZ = randStdNormal * standardDeviation;
+        
         return new Vector3(errorX, 0f, errorZ);
     }
 
