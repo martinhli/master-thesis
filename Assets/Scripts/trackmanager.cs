@@ -68,7 +68,7 @@ namespace Data
             Vector3 position = GeoToWorldPosition(ship.lat, ship.lon);
 
             // Calculate velocity vector from speed and course
-            Vector3 velocity = CalculateVelocityVector(ship.speed, ship.course);
+            Vector3 velocity = CalculateVelocityVector(ship.course, ship.speed);
 
             if (activeTracks.ContainsKey(trackId))
             {
@@ -81,14 +81,16 @@ namespace Data
                if (correlatedTrack != null)
                 {
                     string oldTrackId = correlatedTrack.trackid;
+                    int priorObservationCount = trackObservationCount.ContainsKey(oldTrackId) ? trackObservationCount[oldTrackId] : 1;
+
                     activeTracks.Remove(oldTrackId); // Remove old track because we will update it with new ID
                     trackObservationCount.Remove(oldTrackId); // Remove old observation count as well
 
                     correlatedTrack.trackid = trackId; // Update track ID to new AIS-based ID
                     activeTracks[trackId] = correlatedTrack; // Add updated track back to active tracks
-                    trackObservationCount[trackId] = trackObservationCount.ContainsKey(oldTrackId) ? trackObservationCount[oldTrackId] : 1;
+                    trackObservationCount[trackId] = priorObservationCount;
 
-                    MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.AIS, ship);
+                    UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
                 }
                 else
                 {
@@ -129,7 +131,7 @@ namespace Data
             if (correlatedTrack != null)
             {
                 // Merge with existing track
-                MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.EOIR, shipData: null);
+                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.EOIR, shipData: null);
             }
             else
             {
@@ -171,15 +173,9 @@ namespace Data
         {
             Track track = activeTracks[trackid];
 
-            track.position = position;
-            track.velocity = velocity;
-            track.timeStamp = DateTime.UtcNow;
-
-            // Add sensor source if not already present
-            if (!track.sources.hasSensor(sensorType))
-            {
-                track.sources.addSensor(sensorType);
-            }
+            // Merge new data into existing track
+            MergeTracks(track, position, velocity, sensorType, shipData); // Merge new data into track
+            track.timeStamp = DateTime.UtcNow; // Update timestamp to now since we have a new observation
 
             // Update confidence
             Data.IdentityConfidence oldConfidence = track.identityConfidence;
@@ -243,6 +239,14 @@ namespace Data
         private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
         {
             //TO DO: Going to use Kalman filtering for merging track data from multiple sensors in the future
+            // Simple averaging baseline for position and velocity.
+            track.position = (track.position + position) * 0.5f;
+            track.velocity = (track.velocity + velocity) * 0.5f;
+
+            if (!track.sources.hasSensor(sensorType))
+            {
+                track.sources.addSensor(sensorType);
+            }
         }
 
         public void RemoveInactiveTracks()

@@ -264,7 +264,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 41d162c322da62e4fb4a253e16e80510, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -20
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 41d162c322da62e4fb4a253e16e80510, type: 3}
       propertyPath: m_LocalRotation.w
@@ -406,12 +406,16 @@ MonoBehaviour:
   mmsi: 257123456
   imo: IMO1234567
   shipType: 4
-  aisTransponder: 0
+  aisTransponder: 1
   radarCrossSection: 0.75
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 7
+  autopilotSpeed: 10
   autopilotCourse: 15
+  turnResponsiveness: 2
+  yawOffsetDegrees: 0
+  disableGravity: 1
+  freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!54 &449651071
 Rigidbody:
@@ -583,6 +587,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::trackoverlayer
   trackManager: {fileID: 118463707}
   labelPrefab: {fileID: 1549653684184420956, guid: d4c65620a95a6478582c5b6b9df1b1d2, type: 3}
+  overlayCamera: {fileID: 1186557780}
 --- !u!1 &653849278
 GameObject:
   m_ObjectHideFlags: 0
@@ -1214,7 +1219,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8d6a9d1e52339cc4585fa8ee3a9b4cd8, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -750
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8d6a9d1e52339cc4585fa8ee3a9b4cd8, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1357,12 +1362,16 @@ MonoBehaviour:
   mmsi: 257123457
   imo: IMO1234567
   shipType: 5
-  aisTransponder: 0
+  aisTransponder: 1
   radarCrossSection: 0.64
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 6
+  autopilotSpeed: 10
   autopilotCourse: 30
+  turnResponsiveness: 2
+  yawOffsetDegrees: 0
+  disableGravity: 1
+  freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!54 &1351383890
 Rigidbody:
@@ -1455,7 +1464,7 @@ MonoBehaviour:
   eoirRange: 20000
   eoirPositionError: 20
   eoirFOV: 75
-  aisEnabled: 0
+  aisEnabled: 1
   radarEnabled: 1
   eoirEnabled: 0
 --- !u!1001 &1503100953
@@ -1468,15 +1477,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalScale.x
-      value: 10
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalScale.y
-      value: 10
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalScale.z
-      value: 10
+      value: 100
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalPosition.x
@@ -1488,11 +1497,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -1000
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.7071068
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalRotation.x
@@ -1500,7 +1509,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.7071068
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalRotation.z
@@ -1512,7 +1521,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 90
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
@@ -1558,12 +1567,16 @@ MonoBehaviour:
   mmsi: 257123468
   imo: IMO1234567
   shipType: 0
-  aisTransponder: 0
+  aisTransponder: 1
   radarCrossSection: 2.26
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 2
-  autopilotCourse: 20
+  autopilotSpeed: 12
+  autopilotCourse: 0
+  turnResponsiveness: 2
+  yawOffsetDegrees: 90
+  disableGravity: 1
+  freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!54 &1503100956
 Rigidbody:
@@ -1622,7 +1635,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -1500
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
       propertyPath: m_LocalRotation.w
@@ -1692,12 +1705,16 @@ MonoBehaviour:
   mmsi: 257123469
   imo: IMO1234567
   shipType: 2
-  aisTransponder: 0
+  aisTransponder: 1
   radarCrossSection: 1.55
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 5
-  autopilotCourse: 0
+  autopilotSpeed: 12
+  autopilotCourse: 10
+  turnResponsiveness: 2
+  yawOffsetDegrees: 0
+  disableGravity: 1
+  freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!54 &1643264376
 Rigidbody:
@@ -1973,7 +1990,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5568944060814529837, guid: 4c5c0f15610f1c448ae7f0bca9cbb54c, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0
+      value: -500
       objectReference: {fileID: 0}
     - target: {fileID: 5568944060814529837, guid: 4c5c0f15610f1c448ae7f0bca9cbb54c, type: 3}
       propertyPath: m_LocalRotation.w
@@ -2035,12 +2052,16 @@ MonoBehaviour:
   mmsi: 257123458
   imo: IMO1234567
   shipType: 5
-  aisTransponder: 0
+  aisTransponder: 1
   radarCrossSection: 0.21
   aisRange: 5000
   enableAutopilot: 1
   autopilotSpeed: 10
   autopilotCourse: 10
+  turnResponsiveness: 2
+  yawOffsetDegrees: 0
+  disableGravity: 1
+  freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
 --- !u!54 &2130294816
 Rigidbody:

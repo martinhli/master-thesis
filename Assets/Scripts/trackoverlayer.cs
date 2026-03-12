@@ -7,6 +7,7 @@ public class trackoverlayer : MonoBehaviour
 {
     public TrackManager trackManager;
     public GameObject labelPrefab;
+    public Camera overlayCamera;
 
     private Dictionary<string, GameObject> activeLabels = new Dictionary<string, GameObject>();
 
@@ -44,6 +45,7 @@ public class trackoverlayer : MonoBehaviour
                     continue;
                 }
                 label.track = track;
+                label.SetViewCamera(overlayCamera);
                 activeLabels[track.trackid] = labelObj;
             }
             else
@@ -64,6 +66,7 @@ public class trackoverlayer : MonoBehaviour
                     continue;
                 }
                 label.track = track;
+                label.SetViewCamera(overlayCamera);
             }
         }
 

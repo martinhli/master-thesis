@@ -32,6 +32,12 @@ public class SimulatedShip : MonoBehaviour
     public bool enableAutopilot = true;
     public float autopilotSpeed = 5f; // Speed in m/s
     public float autopilotCourse = 0f; // Course in degrees (0 = North, 90 = East)
+    public float turnResponsiveness = 2f;
+    public float yawOffsetDegrees = 0f;
+
+    [Header("Physics Stabilization")]
+    public bool disableGravity = true;
+    public bool freezeRollAndPitch = true;
 
     [Header("Visual Representation")]
     public Color shipColor = Color.gray;
@@ -70,6 +76,22 @@ public class SimulatedShip : MonoBehaviour
         _lastPosition = transform.position;
         _lastUpdateTime = Time.time;
 
+        // Stabilize dynamic rigidbody ships so they don't tumble while autopilot drives heading.
+        if (_rb != null)
+        {
+            if (disableGravity)
+            {
+                _rb.useGravity = false;
+            }
+
+            if (freezeRollAndPitch)
+            {
+                _rb.constraints |= RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+            }
+
+            _rb.interpolation = RigidbodyInterpolation.Interpolate;
+        }
+
         // Generate random MMSI if not set
         if (string.IsNullOrEmpty(mmsi) || mmsi == "123456789")
         {
@@ -85,23 +107,32 @@ public class SimulatedShip : MonoBehaviour
         Debug.Log("Simulated Ship Initialized: " + shipName + " | MMSI: " + mmsi + " | IMO: " + imo);
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (enableAutopilot && _rb != null)
         {
-            // Simple autopilot logic: move forward at a constant speed and maintain course
-            float courseRad = autopilotCourse * Mathf.Deg2Rad;
-            Vector3 direction = new Vector3(Mathf.Sin(courseRad), 0, Mathf.Cos(courseRad));
-
-            _rb.linearVelocity = direction * autopilotSpeed;
-
-            // Rotate the ship to face the direction of movement
-            if (direction != Vector3.zero)
+            // Autopilot heading target from course.
+            Vector3 courseDirection = CourseToDirection(autopilotCourse);
+            if (courseDirection == Vector3.zero)
             {
-                Quaternion targetRotation = Quaternion.LookRotation(direction);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.fixedDeltaTime * 2f);
+                _rb.linearVelocity = Vector3.zero;
+                return;
             }
+
+            // Move on the true course direction, but allow a manual visual yaw offset per model.
+            Quaternion targetRotation = Quaternion.LookRotation(courseDirection, Vector3.up) * Quaternion.Euler(0f, yawOffsetDegrees, 0f);
+            Quaternion smoothed = Quaternion.Slerp(_rb.rotation, targetRotation, turnResponsiveness * Time.fixedDeltaTime);
+            _rb.MoveRotation(smoothed);
+            _rb.angularVelocity = Vector3.zero;
+
+            _rb.linearVelocity = courseDirection * autopilotSpeed;
         }
+    }
+
+    private static Vector3 CourseToDirection(float courseDegrees)
+    {
+        float courseRad = courseDegrees * Mathf.Deg2Rad;
+        return new Vector3(Mathf.Sin(courseRad), 0f, Mathf.Cos(courseRad));
     }
 
     public Vector3 GetVelocity()
