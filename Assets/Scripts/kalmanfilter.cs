@@ -245,7 +245,7 @@ namespace Data
 
             if (Mathf.Abs(det) < 0.0001f)
             {
-                const eps = 0.0001f; // Add a small value to the diagonal to make it invertible
+                const float eps = 0.0001f; // Add a small value to the diagonal to make it invertible
         
                 float[,] inv = new float[2, 2] {
                     { 1, 0 },
