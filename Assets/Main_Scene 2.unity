@@ -226,6 +226,7 @@ MonoBehaviour:
   correlationTimeThreshold: 60
   trackInactivityTimeout: 120
   minObservationsForValidTrack: 3
+  verboseLogging: 1
   overlaySystem: {fileID: 857207533}
 --- !u!4 &118463708
 Transform:
@@ -399,19 +400,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 449651066}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
   shipName: MV Military
-  mmsi: 257123456
-  imo: IMO1234567
+  mmsi: '257529094 '
+  imo: IMO2260730
   shipType: 4
   aisTransponder: 1
-  radarCrossSection: 0.75
+  radarCrossSection: 1.48
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 10
-  autopilotCourse: 15
+  autopilotSpeed: 15
+  autopilotCourse: 45
   turnResponsiveness: 2
   yawOffsetDegrees: 0
   disableGravity: 1
@@ -1355,18 +1356,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 1351383885}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
   shipName: MV Other
-  mmsi: 257123457
-  imo: IMO1234567
-  shipType: 5
+  mmsi: 257081693
+  imo: IMO0307865
+  shipType: 0
   aisTransponder: 1
-  radarCrossSection: 0.64
+  radarCrossSection: 1
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 10
+  autopilotSpeed: 12
   autopilotCourse: 30
   turnResponsiveness: 2
   yawOffsetDegrees: 0
@@ -1560,18 +1561,18 @@ MonoBehaviour:
   m_GameObject: {fileID: 1503100954}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
   shipName: MV Cargo
-  mmsi: 257123468
-  imo: IMO1234567
+  mmsi: 257106769
+  imo: IMO0614819
   shipType: 0
   aisTransponder: 1
-  radarCrossSection: 2.26
+  radarCrossSection: 2.12
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 12
+  autopilotSpeed: 10
   autopilotCourse: 0
   turnResponsiveness: 2
   yawOffsetDegrees: 90
@@ -1698,21 +1699,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 1643264374}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
   shipName: MV Passenger
-  mmsi: 257123469
-  imo: IMO1234567
+  mmsi: 257252596
+  imo: IMO0861920
   shipType: 2
   aisTransponder: 1
-  radarCrossSection: 1.55
+  radarCrossSection: 1.64
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 12
-  autopilotCourse: 10
+  autopilotSpeed: 5
+  autopilotCourse: 0
   turnResponsiveness: 2
-  yawOffsetDegrees: 0
+  yawOffsetDegrees: 90
   disableGravity: 1
   freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
@@ -2045,19 +2046,19 @@ MonoBehaviour:
   m_GameObject: {fileID: 2130294814}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
   shipName: MV Other 2
-  mmsi: 257123458
-  imo: IMO1234567
+  mmsi: 257327862
+  imo: 'IMO9693127 '
   shipType: 5
   aisTransponder: 1
-  radarCrossSection: 0.21
+  radarCrossSection: 0.72
   aisRange: 5000
   enableAutopilot: 1
-  autopilotSpeed: 10
-  autopilotCourse: 10
+  autopilotSpeed: 12
+  autopilotCourse: 20
   turnResponsiveness: 2
   yawOffsetDegrees: 0
   disableGravity: 1

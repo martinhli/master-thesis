@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using Data;
 using UnityEngine;
@@ -26,6 +27,9 @@ namespace Data
 
         [Tooltip("Minimum number of observations required to consider a track valid")]
         public int minObservationsForValidTrack = 3;
+
+        [Tooltip("Enable verbose logging for debugging purposes")]
+        public bool verboseLogging = true;
         // Track observation count for validation
         private Dictionary<string, int> trackObservationCount = new Dictionary<string, int>();
 
@@ -52,14 +56,16 @@ namespace Data
             if (aisData == null || aisData.ships.Count == 0)
                 return;
 
+            DateTime observationTimestamp = ParseObservationTimestamp(aisData.timestamp);
+
             foreach (Data.Ship ship in aisData.ships)
             {
-                ProcessShipData(ship);
+                ProcessShipData(ship, observationTimestamp);
             }
 
         }
 
-        public void ProcessShipData(Data.Ship ship)
+        public void ProcessShipData(Data.Ship ship, DateTime observationTimestamp)
         {
             // Make a track ID based on MMSI
             string trackId = $"AIS_{ship.mmsi}";
@@ -72,7 +78,7 @@ namespace Data
 
             if (activeTracks.ContainsKey(trackId))
             {
-                UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
+                UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
             }
             else
             {
@@ -90,11 +96,11 @@ namespace Data
                     activeTracks[trackId] = correlatedTrack; // Add updated track back to active tracks
                     trackObservationCount[trackId] = priorObservationCount;
 
-                    UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
+                    UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
                 }
                 else
                 {
-                    CreateNewTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
+                    CreateNewTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
                 }
             }  
         }
@@ -107,7 +113,7 @@ namespace Data
             if (correlatedTrack != null)
             {
                 // Update existing radar track directly for now (Kalman merge can replace this later).
-                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.Radar, shipData: null);
+                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.Radar, shipData: null, timestamp);
 
                 // TODO: Merge close radar tracks 
                 //MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.Radar, shipData: null);
@@ -116,7 +122,7 @@ namespace Data
             {
                 // Create a new track with an unique ID
                 string trackId = $"Radar_{Guid.NewGuid().ToString().Substring(0, 8)}";
-                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.Radar, shipData: null);
+                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.Radar, shipData: null, timestamp);
             }
         }
 
@@ -131,13 +137,13 @@ namespace Data
             if (correlatedTrack != null)
             {
                 // Merge with existing track
-                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.EOIR, shipData: null);
+                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.EOIR, shipData: null, timestamp);
             }
             else
             {
                 // Create a new track with an unique ID
                 string trackId = $"EOIR_{Guid.NewGuid().ToString().Substring(0, 8)}";
-                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.EOIR, shipData: null);
+                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.EOIR, shipData: null, timestamp);
             }
         }
 
@@ -150,7 +156,7 @@ namespace Data
         /// <param name="sensorType"></param>
         /// <param name="shipData"></param>
 
-        private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData, DateTime observationTimestamp)
         {
             Track newTrack = new Track();
 
@@ -158,6 +164,10 @@ namespace Data
             newTrack.position = position;
             newTrack.velocity = velocity;
             newTrack.shipData = shipData;
+            newTrack.timeStamp = observationTimestamp;
+
+            newTrack.InitializeKalmanFilter(); // Initialize Kalman filter state with first observation
+            newTrack.positionUncertainty = newTrack.kalmanFilter.GetPositionUncertainty();
 
             newTrack.sources.addSensor(sensorType); // Mark the source sensor
 
@@ -167,15 +177,26 @@ namespace Data
             trackObservationCount[trackid] = 1; // First observation
 
             OnTrackCreated?.Invoke(newTrack); // Trigger event for UI update
+
+            if (verboseLogging)
+            {
+                string shipInfo = shipData != null ? shipData.name : "Unknown";
+                Debug.Log($"[TrackManager] Created new track: ID={trackid}, Position={position}, Velocity={velocity}, Sensor={sensorType}, Ship={shipInfo}");
+            }
         }
 
-        private void UpdateExistingTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void UpdateExistingTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData, DateTime observationTimestamp)
         {
             Track track = activeTracks[trackid];
 
+            // Initialize Kalman filter if not already done (first time we merge data into this track)
+            if (track.kalmanFilter == null)
+            {
+                track.InitializeKalmanFilter();
+            }
+
             // Merge new data into existing track
-            MergeTracks(track, position, velocity, sensorType, shipData); // Merge new data into track
-            track.timeStamp = DateTime.UtcNow; // Update timestamp to now since we have a new observation
+            MergeTracks(track, position, velocity, sensorType, shipData, observationTimestamp); // Merge new data into track
 
             // Update confidence
             Data.IdentityConfidence oldConfidence = track.identityConfidence;
@@ -236,17 +257,66 @@ namespace Data
             return bestMatch;
         }
 
-        private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
+        private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData, DateTime observationTimestamp)
         {
             //TO DO: Going to use Kalman filtering for merging track data from multiple sensors in the future
-            // Simple averaging baseline for position and velocity.
-            track.position = (track.position + position) * 0.5f;
-            track.velocity = (track.velocity + velocity) * 0.5f;
-
-            if (!track.sources.hasSensor(sensorType))
+            // Initialize Kalman filter if not already done (first time we merge data into this track)
+            if (track.kalmanFilter == null)
             {
-                track.sources.addSensor(sensorType);
+                track.InitializeKalmanFilter();
             }
+            // Predict current state to observation time before updating with new measurement
+            float predictionDeltaTime = Mathf.Max(0f, (float)(observationTimestamp - track.timeStamp).TotalSeconds);
+            if (predictionDeltaTime > 0f)
+            {
+                track.kalmanFilter.Predict(predictionDeltaTime);
+            }
+
+            // Update Kalman filter with new observation
+            track.kalmanFilter.Update(position, sensorType);
+
+            // Update track position and velocity with Kalman filter estimates
+            track.position = track.kalmanFilter.GetPosition();
+            track.velocity = track.kalmanFilter.GetVelocity();
+            track.positionUncertainty = track.kalmanFilter.GetPositionUncertainty();
+
+            track.timeStamp = observationTimestamp; // Update timestamp to the observation time
+            track.sources.addSensor(sensorType); // Add new sensor source
+
+            // Update confidence based on new sensor data
+            track.identityConfidence = DetermineIdentityConfidence(track);
+
+            // Update state to Confirmed if we have enough observations
+            if (track.state == TrackState.Observed && track.sources.hasMultipleSensors())
+            {
+                track.state = TrackState.Confirmed;
+            }
+
+            // Update ship data if new data is available
+            if (shipData != null)
+            {
+                track.shipData = shipData;
+            }
+
+            if (verboseLogging)
+            {
+                Debug.Log($"[TrackManager] Merged {sensorType} into track {track.trackid} " +
+                $"(Uncertainty: {track.positionUncertainty:F1}m, " +
+                $"Sources: {track.sources.activeSensors}, Confidence: {track.identityConfidence})");
+            }
+
+            OnTrackUpdated?.Invoke(track); // Trigger event for UI update
+        }
+
+        private DateTime ParseObservationTimestamp(string timestamp)
+        {
+            if (!string.IsNullOrWhiteSpace(timestamp) &&
+                DateTime.TryParse(timestamp, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTime parsedTimestamp))
+            {
+                return parsedTimestamp;
+            }
+
+            return DateTime.UtcNow;
         }
 
         public void RemoveInactiveTracks()
@@ -274,6 +344,27 @@ namespace Data
         public void PredictTrackPositions(float deltaTime)
         {
             // Need to implement a prediction algorithm (e.g., Kalman filter) to estimate future positions based on current velocity and heading
+            foreach (var track in activeTracks.Values)
+            {
+                if (track.kalmanFilter != null)
+                {
+                    // Use Kalman filter to predict future position
+                    track.kalmanFilter.Predict(deltaTime);
+
+                    // Update track position and velocity with predicted values
+                    track.position = track.kalmanFilter.GetPosition();
+                    track.velocity = track.kalmanFilter.GetVelocity();
+                    track.positionUncertainty = track.kalmanFilter.GetPositionUncertainty();
+
+                    track.state = TrackState.Predicted; // Update state to indicate this is a predicted position
+                }
+                else if (track.velocity != Vector3.zero)
+                {
+                    // Simple linear prediction if no Kalman filter is available
+                    track.position += track.velocity * deltaTime;
+                    track.state = TrackState.Predicted; // Update state to indicate this is a predicted position
+                }
+            }
         }
 
         public void PrintActiveTracks()
@@ -335,6 +426,27 @@ namespace Data
         public int GetTrackCount()
         {
             return activeTracks.Count;
+        }
+
+        public float GetTrackQuality(Track track)
+        {
+            // Get track quality score (0-1) based on uncertainty and sensor sources
+            
+            // Factor in position uncertainty (lower is better)
+            float uncertaintyScore = Mathf.Clamp01(1f - (track.positionUncertainty / correlationDistanceThreshold));
+
+            // Factor in sensor sources (more sensors is better)
+            int sensorCount = 0;
+            if (track.sources.hasSensor(SensorType.AIS)) sensorCount++;
+            if (track.sources.hasSensor(SensorType.Radar)) sensorCount++;
+            if (track.sources.hasSensor(SensorType.EOIR)) sensorCount++;
+            float sensorScore = sensorCount / 3f; // Normalize to 0-1
+
+            // Factor in track state (Confirmed is better than Observed)
+            float stateScore = track.state == TrackState.Confirmed ? 1f : 0.5f; 
+
+            // Combine all factors to get the final quality score
+            return (uncertaintyScore * 0.5f) + (sensorScore * 0.3f) + (stateScore * 0.2f);
         }
 
         /// <summary>

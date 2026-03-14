@@ -26,6 +26,9 @@ namespace Data
         // Time step (delta time)
         private float dt;
 
+        // White acceleration noise intensity for the constant-velocity model.
+        private const float ProcessNoiseAccelerationVariance = 1f;
+
         public KalmanFilter(float initialX, float initialZ, float initialVx = 0f, float initialVz = 0f)
         {
             // Initialize state vector
@@ -80,7 +83,7 @@ namespace Data
         public void Predict(float deltaTime)
         {
             // Update the time step
-            dt = deltaTime;
+            dt = Mathf.Max(deltaTime, 0.0001f);
 
             // Update state transition matrix F based on the time step
             F = new float[4, 4]
@@ -89,6 +92,19 @@ namespace Data
                 { 0, 1, 0, 0 },
                 { 0, 0, 1, dt },
                 { 0, 0, 0, 1 }
+            };
+
+            // Build process noise Q from dt for a constant-velocity model with white acceleration input.
+            float dt2 = dt * dt;
+            float dt3 = dt2 * dt;
+            float dt4 = dt2 * dt2;
+            float q = ProcessNoiseAccelerationVariance;
+            Q = new float[4, 4]
+            {
+                { 0.25f * dt4 * q, 0.5f * dt3 * q, 0, 0 },
+                { 0.5f * dt3 * q, dt2 * q, 0, 0 },
+                { 0, 0, 0.25f * dt4 * q, 0.5f * dt3 * q },
+                { 0, 0, 0.5f * dt3 * q, dt2 * q }
             };
 
             // Predict the next state: state = F * state
