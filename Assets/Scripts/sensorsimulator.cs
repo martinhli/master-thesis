@@ -2,12 +2,8 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Data;
-using System.Threading.Tasks.Dataflow;
-using System.Runtime.CompilerServices;
-using System.Diagnostics;
-using System.Numerics;
-using System.ComponentModel.DataAnnotations;
-using System.Drawing;
+
+using Random = UnityEngine.Random;
 
 public class SensorSimulator : MonoBehaviour
 {
@@ -35,10 +31,10 @@ public class SensorSimulator : MonoBehaviour
     public float radarUpdateInterval = 4f;
 
     [Tooltip("Radar range in meters")]
-    public float radarRange = 80000f; // 80 km is typical for ship radars
+    public float radarRange = 45000f; // 45 km is typical for ship radars
 
     [Tooltip("Radar position error in meters")]
-    public float radarPositionError = 50f;
+    public float radarPositionError = 30f;
 
     [Tooltip("Radar azimuth coverage in degrees")]
     public float radarAzimuthCoverage = 360f;
@@ -137,7 +133,7 @@ public class SensorSimulator : MonoBehaviour
             float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within AIS range
-            if (distanceToShip <= aisRange) continue;
+            if (distanceToShip > aisRange) continue;
 
             // Create Ship data object with error applied@
             Ship aisShipData = CreateShipData(ship, aisPositionError);
@@ -169,16 +165,17 @@ public class SensorSimulator : MonoBehaviour
             float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within radar range
-            if (distanceToShip <= radarRange) continue;
+            if (distanceToShip > radarRange) continue;
 
             Vector3 toShip = ship.transform.position - aircraftTransform.position;
 
             // Check if within radar azimuth coverage
             float azimuth = Vector3.SignedAngle(aircraftTransform.forward, toShip, Vector3.up);
-            if (MathF.Abs(azimuth) > radarAzimuthCoverage / 2f) continue;
+            if (Mathf.Abs(azimuth) > radarAzimuthCoverage / 2f) continue;
 
-            // Add radar position error
-            Vector3 detectedPosition = ship.transform.position + GetRandomPositionError(radarPositionError);
+            // Interpret radarPositionError as a 2-sigma setting and convert to 1-sigma for Gaussian sampling.
+            float radarSigma = radarPositionError * 0.5f;
+            Vector3 detectedPosition = ship.transform.position + GetRandomPositionError(radarSigma);
 
             // Calculate velocity
             Vector3 velocity = ship.GetVelocity();
@@ -195,14 +192,14 @@ public class SensorSimulator : MonoBehaviour
     {
         if (eoirCamera == null) return;
 
-        foreach (ShimulatedShip ship in simulatedShips)
+        foreach (SimulatedShip ship in simulatedShips)
         {
             if (ship == null || !ship.gameObject.activeInHierarchy) continue;
 
              float distanceToShip = Vector3.Distance(aircraftTransform.position, ship.transform.position);
 
             // Check if within EOIR range
-            if (distanceToShip <= eoirRange) continue;
+            if (distanceToShip > eoirRange) continue;
 
             Vector3 toShip = ship.transform.position - aircraftTransform.position;
 
@@ -251,16 +248,31 @@ public class SensorSimulator : MonoBehaviour
         };
     }
 
-    private Vector3 GetRandomPositionError(float magnitude)
+    private Vector3 GetRandomPositionError(float standardDeviation)
     {
-        float errorX = UnityEngine.Random.Range(-magnitude, magnitude);
-        float errorZ = UnityEngine.Random.Range(-magnitude, magnitude);
+        // Box-Muller transform for Gaussian distribution
+        float u1 = Random.value;
+        float u2 = Random.value;
+        float randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);
+        
+        // For 2D error (X and Z)
+        float errorX = randStdNormal * standardDeviation;
+        
+        // Generate second independent Gaussian
+        u1 = Random.value;
+        u2 = Random.value;
+        randStdNormal = Mathf.Sqrt(-2.0f * Mathf.Log(u1)) * Mathf.Sin(2.0f * Mathf.PI * u2);
+        float errorZ = randStdNormal * standardDeviation;
+        
         return new Vector3(errorX, 0f, errorZ);
     }
 
     private Vector2 WorldToLatLon(Vector3 worldPos)
     {
-        // Need to convert from Unity's world coordinates to lat/lon.
+        // Simple local planar approximation used elsewhere in the project.
+        float lat = worldPos.z / 110540f;
+        float lon = worldPos.x / 111320f;
+        return new Vector2(lat, lon);
     }
 
     /// <summary>

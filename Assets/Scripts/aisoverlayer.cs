@@ -3,8 +3,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using Data;
 
-using UnityEngine;
-
 public class AISOverlay : MonoBehaviour
 {
     [Header("Refs")]

@@ -1,40 +1,72 @@
 using UnityEngine;
 using UnityEngine.UI;
+using System.Collections.Generic;
+using Data;
 
 public class trackoverlayer : MonoBehaviour
 {
     public TrackManager trackManager;
     public GameObject labelPrefab;
+    public Camera overlayCamera;
 
     private Dictionary<string, GameObject> activeLabels = new Dictionary<string, GameObject>();
 
     void Update()
     {
         if (trackManager == null) return;
+        if (labelPrefab == null)
+        {
+            Debug.LogError("trackoverlayer: labelPrefab is not assigned.");
+            return;
+        }
 
         // Get current confirmed tracks from the track manager
         var confirmedTracks = trackManager.GetConfirmedTracks();
+        if (confirmedTracks == null) return;
 
         // Update existing labels and create new ones for new tracks
         HashSet<string> currentTrackIds = new HashSet<string>();
 
         foreach (var track in confirmedTracks)
         {
-            currentTrackIds.Add(track.trackId);
+            if (track == null || string.IsNullOrEmpty(track.trackid)) continue;
 
-            if (!activeLabels.ContainsKey(track.trackId))
+            currentTrackIds.Add(track.trackid);
+
+            if (!activeLabels.ContainsKey(track.trackid))
             {
                 // Create new label for this track
-                GameObject labelObj = Instantiate(tracklabelPrefab);
-                var label = labelObj.GetComponent<TrackLabel3D>();
+                GameObject labelObj = Instantiate(labelPrefab);
+                var label = labelObj.GetComponent<tracklabeler>();
+                if (label == null)
+                {
+                    Debug.LogError("trackoverlayer: labelPrefab is missing tracklabeler component.");
+                    Destroy(labelObj);
+                    continue;
+                }
                 label.track = track;
-                activeLabels[track.trackId] = labelObj;
+                label.SetViewCamera(overlayCamera);
+                activeLabels[track.trackid] = labelObj;
             }
             else
             {
+                if (activeLabels[track.trackid] == null)
+                {
+                    activeLabels.Remove(track.trackid);
+                    continue;
+                }
+
                 // Update existing label
-                var label = activeLabels[track.trackId].GetComponent<TrackLabel3D>();
+                var label = activeLabels[track.trackid].GetComponent<tracklabeler>();
+                if (label == null)
+                {
+                    Debug.LogError("trackoverlayer: existing label is missing tracklabeler component.");
+                    Destroy(activeLabels[track.trackid]);
+                    activeLabels.Remove(track.trackid);
+                    continue;
+                }
                 label.track = track;
+                label.SetViewCamera(overlayCamera);
             }
         }
 
