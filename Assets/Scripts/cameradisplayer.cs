@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class CameraFeedDisplay_Canvas : MonoBehaviour
+public class cameradisplayer : MonoBehaviour
 {
     [Header("Camera Settings")]
     public Camera eoirCamera;

@@ -6,6 +6,7 @@ public class EOIRCameraController : MonoBehaviour
     [Header("Camera Settings")]
     [Tooltip("The EOIR camera that renders the ship scene")]
     public Camera eoirCamera;
+    public Transform cameraMount;
 
     [Tooltip("Display screen for EOIR camera output")]
     public RenderTexture cameraDisplay;
