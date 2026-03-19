@@ -10,7 +10,7 @@ public class tracklabeler : MonoBehaviour
     [Header("Label Placement")]
     public Camera viewCamera;
     public float fallbackLabelHeight = 20f;
-    public float extraHeightAboveShip = 40f;
+    public float extraHeightAboveShip = 60f;
 
     [Header("Distance Scaling")]
     [Tooltip("Distance at which the label appears at its original size.")]

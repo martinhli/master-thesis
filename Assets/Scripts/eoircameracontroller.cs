@@ -1,6 +1,13 @@
 using UnityEngine;
+using UnityEngine.UI;
 using System.Collections.Generic;
 using Data;
+using System.Numerics;
+
+using TMPro;
+using Vector2 = UnityEngine.Vector2;
+using Vector3 = UnityEngine.Vector3;
+using Quaternion = UnityEngine.Quaternion;
 public class EOIRCameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
@@ -8,24 +15,37 @@ public class EOIRCameraController : MonoBehaviour
     public Camera eoirCamera;
     public Transform cameraMount;
 
-    [Tooltip("Display screen for EOIR camera output")]
-    public RenderTexture cameraDisplay;
-
     [Header("Camera Control Parameters")]
-    [Tooltip("Pan speed (degrees per second)")]
-    public float panSpeed = 30f;
+    [Tooltip("How far can the camera pan left/right (degrees)")]
+    public float maxPan = 180f;
 
-    [Tooltip("Tilt speed (degrees per second)")]
-    public float tiltSpeed = 30f;
+    [Tooltip("How far can the camera tilt up (degrees)")]
+    public float maxTilt = 20f;
+
+    [Tooltip("How far can the camera tilt down (degrees)")]
+    public float minTilt = -90f;
 
     [Tooltip("Zoom speed (units per second)")]
-    public float zoomSpeed = 5f;
+    public float zoomSpeed = 20f;
+
+    [Tooltip("Rotation speed (degrees per second)")]
+    public float rotationSpeed = 30f;
 
     [Tooltip ("Minimum FOV (max zoom in)")]
-    public float minFOV = 10f;
+    public float minFOV = 5f;
 
     [Tooltip("Maximum FOV (max zoom out)")]
     public float maxFOV = 60f;
+
+    [Header("Current Camera State")]
+    public float currentPan = 0f;
+    public float currentTilt = 15f;
+    public float currentZoom = 45f;
+    private Vector3 targetRotation;
+
+    [Header("Camera Capture Feedback")]
+    public TextMeshProUGUI statusText;
+    public Image flashEffect;
 
     [Header("Detection Parameters")]
 
@@ -39,20 +59,12 @@ public class EOIRCameraController : MonoBehaviour
     public float detectionRange = 15000f;
 
     [Header("Input Settings")]
+
     [Tooltip("Input key to capture camera control input")]
     public KeyCode captureInputKey = KeyCode.Space;
 
     [Tooltip("VR controller input button to capture camera control input")]
     public bool useVRControllerInput = false;
-
-    [Header("UI Elements")]
-    public GameObject crosshairUI;
-    public UnityEngine.UI.Text statusText;
-    public UnityEngine.UI.Image flashEffect;
-
-    //Internal state variables
-    private float currentPan = 0f;
-    private float currentTilt = 0f;
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -62,87 +74,100 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (eoirCamera == null)
         {
+            eoirCamera = GetComponent<Camera>();
             Debug.LogError("[EO/IR] No camera assigned!");
-            enabled = false;
             return;
         }
-
-        // Setup camera feed display
-        if (cameraDisplay != null)
+        if (cameraMount == null)
         {
-            eoirCamera.targetTexture = cameraDisplay;
+            cameraMount = transform.parent;
         }
 
         // Initialize camera orientation
-        currentPan = transform.localEulerAngles.y;
-        currentTilt = transform.localEulerAngles.x;
+        eoirCamera.fieldOfView = currentZoom;
 
-        UpdateStatusText("EO/IR Camera Ready");
+        // Need a function to set the initial rotation of the camera based on currentPan and currentTilt
+        ApplyCameraRotation();
+
+        UpdateStatusText("[EO/IR] EO/IR Camera Ready");
     }
 
     void Update()
     {
         HandleCameraControl();
+        UpdateCamera();
         HandleCapture();
     }
 
     /// <summary>
     /// Camera Handling Functions
     /// </summary>
-
-    private void HandleCameraControl()
+    
+    void UpdateCamera()
     {
-        // Keyboard input for testing
-        float panInput = 0f;
-        float tiltInput = 0f;
-        float zoomInput = 0f;
+        // Apply zoom
+        eoirCamera.fieldOfView = Mathf.Lerp(eoirCamera.fieldOfView, currentZoom, Time.deltaTime * zoomSpeed);
+        // Apply rotation
+        ApplyCameraRotation();
+    }
 
+    void ApplyCameraRotation()
+    {
+        transform.localRotation = Quaternion.Euler(currentTilt, currentPan, 0f);
+    }
+
+    public void LookAtPosition(Vector3 worldPosition)
+    {
+        // Point the camera at a specific world position (e.g. a ship's position)
+        Vector3 direction = worldPosition - transform.position;
+        Quaternion targetRotation = Quaternion.LookRotation(direction);
+
+        // Get local Euler angles from the target rotation
+        Vector3 localAngles = (Quaternion.Inverse(cameraMount.rotation) * targetRotation).eulerAngles;
+
+        // Normalize angles to -180 to 180 range
+        localAngles.x = (localAngles.x > 180) ? localAngles.x - 360 : localAngles.x;
+        localAngles.y = (localAngles.y > 180) ? localAngles.y - 360 : localAngles.y;
+
+        currentTilt = Mathf.Clamp(localAngles.x, minTilt, maxTilt);
+        currentPan = Mathf.Clamp(localAngles.y, -maxPan, maxPan);
+    }
+
+    void HandleCameraControl()
+    {
+        
         // Using WASD or arrow keys for pan/tilt control
         if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
         {
-            panInput = -1f;
+            PanLeft(rotationSpeed* Time.deltaTime);
         }
         if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
         {
-            panInput = 1f;
+            PanRight(rotationSpeed* Time.deltaTime);
         }
         if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
         {
-            tiltInput = 1f;
+            TiltUp(rotationSpeed* Time.deltaTime);
         }
         if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
         {
-            tiltInput = -1f;
+            TiltDown(rotationSpeed* Time.deltaTime);
         }
 
         //Using Q/E for zoom control
         if (Input.GetKey(KeyCode.Q))
         {
-            zoomInput = 1f; // Zoom out
+            ZoomIn(zoomSpeed* Time.deltaTime); // Zoom in
         }
         if (Input.GetKey(KeyCode.E))
         {
-            zoomInput = -1f; // Zoom in
+            ZoomOut(zoomSpeed* Time.deltaTime); // Zoom out
         }
 
-        // Apply pan and tilt based on input
-        if (panInput != 0f || tiltInput != 0f)
+        // Reset camera orientation with R key
+        if (Input.GetKeyDown(KeyCode.R))
         {
-            currentPan += panInput * panSpeed * Time.deltaTime;
-            currentTilt += tiltInput * tiltSpeed * Time.deltaTime;
-
-            // Clamp tilt to prevent flipping
-            currentTilt = Mathf.Clamp(currentTilt, -90f, 90f);
-
-            // Apply rotation to camera
-            transform.localRotation = Quaternion.Euler(currentTilt, currentPan, 0f);
-        }
-
-        // Apply zoom based on input
-        if (zoomInput != 0f)
-        {
-            float newFOV = eoirCamera.fieldOfView + zoomInput * zoomSpeed * Time.deltaTime;
-            eoirCamera.fieldOfView = Mathf.Clamp(newFOV, minFOV, maxFOV);
+            ResetCamera();
         }
     }
     
@@ -163,10 +188,62 @@ public class EOIRCameraController : MonoBehaviour
 
         if (capturePressed)
         {
+            FlashScreen();
             CaptureImage();
         }
     }
 
+    /// <summary>
+    /// Camera Movement Functions
+    /// </summary>
+    
+    public void PanLeft(float amount)
+    {
+        currentPan -= amount;
+        currentPan = Mathf.Clamp(currentPan, -maxPan, maxPan);
+    }
+
+    public void PanRight(float amount)
+    {
+        currentPan += amount;
+        currentPan = Mathf.Clamp(currentPan, -maxPan, maxPan);
+    }
+
+    public void TiltUp(float amount)
+    {
+        currentTilt += amount;
+        currentTilt = Mathf.Clamp(currentTilt, minTilt, maxTilt);
+    }
+
+    public void TiltDown(float amount)
+    {
+        currentTilt -= amount;
+        currentTilt = Mathf.Clamp(currentTilt, minTilt, maxTilt);
+    }
+
+    public void ZoomIn(float amount)
+    {
+        currentZoom -= amount;
+        currentZoom = Mathf.Clamp(currentZoom, minFOV, maxFOV);
+    }
+
+    public void ZoomOut(float amount)
+    {
+        currentZoom += amount;
+        currentZoom = Mathf.Clamp(currentZoom, minFOV, maxFOV);
+    }
+
+    public void SetZoom(float fov)
+    {
+        currentZoom = Mathf.Clamp(fov, minFOV, maxFOV);
+    }
+
+    public void ResetCamera()
+    {
+        currentPan = 0f;
+        currentTilt = 15f;
+        currentZoom = 45f;
+    }
 
     /// <summary>
     /// Image Capture and Detection Functions
@@ -224,9 +301,10 @@ public class EOIRCameraController : MonoBehaviour
                     new Vector2(viewPortPoint.x, viewPortPoint.y),
                     new Vector2(0.5f, 0.5f)
                 );
-                // Ship has to be within 20% of the center of the view to be considered a valid detection
-                if (centerDistance < 0.2f) // Adjust this threshold as needed
+                // Ship has to be within 40% of the center of the view to be considered a valid detection
+                if (centerDistance < 0.4f) // Adjust this threshold as needed
                 {
+                    UpdateStatusText($"Ship detected {ship.shipName}");
                     return ship;
                 }
                 else
@@ -268,7 +346,7 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (statusText != null)
         {
-            statusText.text = message;
+            StartCoroutine(ShowStatusMessage(message, 3f)); // Show message for 3 seconds
         }
     }
 
@@ -276,11 +354,18 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (flashEffect != null)
         {
-            StartCoroutine(FlashCoroutine());
+            StartCoroutine(Flash());
         }
     }
 
-    private System.Collections.IEnumerator FlashCoroutine()
+    private System.Collections.IEnumerator ShowStatusMessage(string message, float duration)
+    {
+        statusText.text = message;
+        yield return new WaitForSeconds(duration);
+        statusText.text = "";
+    }
+
+    private System.Collections.IEnumerator Flash()
     {
         // Flash the screen white to indicate a successful capture
         flashEffect.enabled = true;
@@ -288,7 +373,7 @@ public class EOIRCameraController : MonoBehaviour
         flashColor.a = 0.8f;
         flashEffect.color = flashColor;
 
-        yield return new WaitForSeconds(0.1f); // Flash duration
+        yield return new WaitForSeconds(2); // Flash duration
 
         // Fade out the flash
         flashColor.a = 0f;

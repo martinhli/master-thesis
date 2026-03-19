@@ -9,9 +9,10 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: M_YFMeM_04
   m_Shader: {fileID: 4800000, guid: 933532a4fcc9baf4fa0491de14d08ed7, type: 3}
-  m_Parent: {fileID: 2100000, guid: b1ec81eca85a9d84ea5f62901c99f89d, type: 2}
+  m_Parent: {fileID: 2100000, guid: d483b4637a2e1b84999ed6e843dd932a, type: 2}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords:
+  - _ALPHATEST_ON
   - _METALLICSPECGLOSSMAP
   - _NORMALMAP
   - _SPECGLOSSMAP
@@ -22,7 +23,7 @@ Material:
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap:
-    RenderType: Opaque
+    RenderType: TransparentCutout
   disabledShaderPasses:
   - MOTIONVECTORS
   m_LockedProperties: 
