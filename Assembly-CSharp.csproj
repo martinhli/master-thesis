@@ -76,6 +76,7 @@
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/SkewTextExample.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/WarpTextExample.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/ShaderPropAnimator.cs" />
+    <Compile Include="Assets/Scripts/yolodetector.cs" />
     <Compile Include="Assets/Scripts/simulatedship.cs" />
     <Compile Include="Assets/Scripts/trackoverlayer.cs" />
     <Compile Include="Assets/TextMesh Pro/Examples &amp; Extras/Scripts/TMP_TextInfoDebugTool.cs" />

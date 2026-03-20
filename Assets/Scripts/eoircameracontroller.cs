@@ -2,7 +2,6 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using Data;
-using System.Numerics;
 
 using TMPro;
 using Vector2 = UnityEngine.Vector2;
@@ -49,14 +48,35 @@ public class EOIRCameraController : MonoBehaviour
 
     [Header("Detection Parameters")]
 
-    //[Tooltip("YOLO detector")]
-    //public YOLODetector yoloDetector;
+    [Tooltip("YOLO detector used to classify captured EO/IR images")]
+    public yolodetector yoloDetector;
+
+    [Tooltip("Enable YOLO-based confirmation/rejection for capture events")]
+    public bool useYOLODetection = true;
+
+    [Tooltip("Require a valid center hit when YOLO reports a vessel")]
+    public bool requireRaycastHitForYOLOConfirmation = true;
+
+    [Tooltip("Capture resolution width for YOLO input")]
+    public int captureWidth = 640;
+
+    [Tooltip("Capture resolution height for YOLO input")]
+    public int captureHeight = 640;
+
+    [Tooltip("Optional expected unknown contact for the current scenario")]
+    public SimulatedShip expectedUnknownContact;
+
+    [Tooltip("When enabled, only the expected unknown contact counts as confirmed")]
+    public bool requireExpectedContactMatch = false;
 
     [Tooltip("Raycast detector")]
     public bool useRaycastDetection = true;
 
     [Tooltip("Detection range in meters")]
     public float detectionRange = 15000f;
+
+    [Tooltip("Spherecast target object")]
+    public GameObject sphereCastTarget;
 
     [Header("Input Settings")]
 
@@ -253,29 +273,61 @@ public class EOIRCameraController : MonoBehaviour
     {
         UpdateStatusText("Capturing image...");
 
-        bool shipDetected = false;
         SimulatedShip detectedShip = null;
+        bool contactConfirmed = false;
 
-        // First try YOLO detection if enabled
-        // if (yoloDetector != null)
-        // {
-        //     shipDetected = yoloDetector.DetectShipInFrame(); //Need to implement this function in YOLODetector
-
-        //     if (shipDetected)
-        //     {
-        //         detectedShip = GetShipInView();
-        //     }
-        // }
-
-        // If YOLO didn't detect anything and raycast detection is enabled, try raycast
-        if (useRaycastDetection)
+        if (useYOLODetection && yoloDetector != null)
         {
-            detectedShip = RaycastDetectShip(); // Need to implement this function to raycast from camera center and check for SimulatedShip hits within detectionRange
-            shipDetected = (detectedShip != null);
+            Texture2D capturedFrame = CaptureCameraFrame();
+            try
+            {
+                yolodetector.Detection bestDetection;
+                bool yoloFoundShip = yoloDetector.TryGetBestShipDetection(capturedFrame, out bestDetection);
+
+                if (yoloFoundShip)
+                {
+                    detectedShip = requireRaycastHitForYOLOConfirmation ? RaycastDetectShip() : GetShipInView();
+                    contactConfirmed = detectedShip != null;
+
+                    if (contactConfirmed && requireExpectedContactMatch && expectedUnknownContact != null)
+                    {
+                        contactConfirmed = detectedShip == expectedUnknownContact;
+                        if (!contactConfirmed)
+                        {
+                            UpdateStatusText("Contact rejected: captured vessel does not match the unknown contact label.");
+                        }
+                    }
+
+                    if (contactConfirmed)
+                    {
+                        UpdateStatusText($"Contact confirmed ({bestDetection.confidence:P0})");
+                    }
+                    else
+                    {
+                        UpdateStatusText("YOLO detected vessel but contact was not centered. Rejected.");
+                    }
+                }
+                else
+                {
+                    UpdateStatusText("Contact rejected: YOLO found no vessel in capture.");
+                }
+            }
+            finally
+            {
+                if (capturedFrame != null)
+                {
+                    Destroy(capturedFrame);
+                }
+            }
+        }
+        else if (useRaycastDetection)
+        {
+            // Fallback mode when YOLO is disabled/unavailable.
+            detectedShip = RaycastDetectShip();
+            contactConfirmed = (detectedShip != null);
         }
 
-        // Handle detection results
-        if (shipDetected && detectedShip != null)
+        if (contactConfirmed && detectedShip != null)
         {
             HandleDetectionSuccess(detectedShip);
         }
@@ -285,33 +337,61 @@ public class EOIRCameraController : MonoBehaviour
         }
     }
 
+    private Texture2D CaptureCameraFrame()
+    {
+        RenderTexture rt = RenderTexture.GetTemporary(captureWidth, captureHeight, 24, RenderTextureFormat.ARGB32);
+        RenderTexture previous = RenderTexture.active;
+        RenderTexture previousCameraTarget = eoirCamera.targetTexture;
+
+        eoirCamera.targetTexture = rt;
+        eoirCamera.Render();
+        RenderTexture.active = rt;
+
+        Texture2D frame = new Texture2D(captureWidth, captureHeight, TextureFormat.RGB24, false);
+        frame.ReadPixels(new Rect(0, 0, captureWidth, captureHeight), 0, 0);
+        frame.Apply();
+
+        eoirCamera.targetTexture = previousCameraTarget;
+        RenderTexture.active = previous;
+        RenderTexture.ReleaseTemporary(rt);
+
+        return frame;
+    }
+
     private SimulatedShip RaycastDetectShip()
     {
-        Ray ray = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+        //Ray ray = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
         RaycastHit hit;
 
-        if (Physics.Raycast(ray, out hit, detectionRange))
+        if (Physics.SphereCast(eoirCamera.transform.position, 5f, eoirCamera.transform.forward, out hit, detectionRange))
         {
             SimulatedShip ship = hit.collider.GetComponent<SimulatedShip>();
             if (ship != null)
             {
                 // Check if ship is centered in the camera view
-                Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(ship.transform.position);
-                float centerDistance = Vector2.Distance(
-                    new Vector2(viewPortPoint.x, viewPortPoint.y),
-                    new Vector2(0.5f, 0.5f)
-                );
+                // Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(ship.transform.position);
+                // float centerDistance = Vector2.Distance(
+                //     new Vector2(viewPortPoint.x, viewPortPoint.y),
+                //     new Vector2(0.5f, 0.5f)
+                // );
+                sphereCastTarget = ship.gameObject;
+                UpdateStatusText($"Ship detected {ship.shipName} by Spherecast");
                 // Ship has to be within 40% of the center of the view to be considered a valid detection
-                if (centerDistance < 0.4f) // Adjust this threshold as needed
-                {
-                    UpdateStatusText($"Ship detected {ship.shipName}");
-                    return ship;
-                }
-                else
-                {
-                    UpdateStatusText("Ship detected but not centered. Adjust camera aim.");
-                    return null;
-                }
+                // if (centerDistance < 0.4f) // Adjust this threshold as needed
+                // {
+                //     UpdateStatusText($"Ship detected {ship.shipName}");
+                //     return ship;
+                // }
+                // else
+                // {
+                //     UpdateStatusText("Ship detected but not centered. Adjust camera aim.");
+                //     return null;
+                // }
+            }
+            else 
+            {
+                sphereCastTarget = null;
+                UpdateStatusText("Spherecast hit an object but it is not a ship.");
             }
         }
         return null;
