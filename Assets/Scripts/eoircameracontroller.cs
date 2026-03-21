@@ -52,7 +52,10 @@ public class EOIRCameraController : MonoBehaviour
     public yolodetector yoloDetector;
 
     [Tooltip("Enable YOLO-based confirmation/rejection for capture events")]
-    public bool useYOLODetection = true;
+    public bool useYOLODetection = false;
+
+    [Tooltip("Run physics detection first; use YOLO only as secondary confirmation/fallback")]
+    public bool usePhysicsDetection = true;
 
     [Tooltip("Require a valid center hit when YOLO reports a vessel")]
     public bool requireRaycastHitForYOLOConfirmation = true;
@@ -72,8 +75,22 @@ public class EOIRCameraController : MonoBehaviour
     [Tooltip("Raycast detector")]
     public bool useRaycastDetection = true;
 
-    [Tooltip("Detection range in meters")]
-    public float detectionRange = 15000f;
+    [Tooltip("Detection range in meters (must exceed farthest scenario contact)")]
+    public float detectionRange = 30000f;
+
+    [Tooltip("Spherecast radius in meters used as tolerance for center-hit confirmation")]
+    public float detectionSphereRadius = 45f;
+    
+    [Tooltip("Allow viewport-based fallback when physics confirmation misses tiny distant targets")]
+    public bool useViewportFallbackDetection = true;
+    
+    [Tooltip("Max viewport distance from center for fallback detection (0.0-1.0)")]
+    [Range(0.01f, 0.5f)]
+    public float viewportFallbackCenterTolerance = 0.12f;
+
+    [Tooltip("Viewport tolerance used when selecting among physics hit candidates")]
+    [Range(0.01f, 0.5f)]
+    public float physicsHitSelectionTolerance = 0.18f;
 
     [Tooltip("Spherecast target object")]
     public GameObject sphereCastTarget;
@@ -276,7 +293,14 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip detectedShip = null;
         bool contactConfirmed = false;
 
-        if (useYOLODetection && yoloDetector != null)
+        bool tryPhysicsFirst = useRaycastDetection && (usePhysicsDetection || !useYOLODetection || yoloDetector == null);
+        if (tryPhysicsFirst)
+        {
+            detectedShip = RaycastDetectShip();
+            contactConfirmed = (detectedShip != null);
+        }
+
+        if (!contactConfirmed && useYOLODetection && yoloDetector != null)
         {
             Texture2D capturedFrame = CaptureCameraFrame();
             try
@@ -310,6 +334,12 @@ public class EOIRCameraController : MonoBehaviour
                 else
                 {
                     UpdateStatusText("Contact rejected: YOLO found no vessel in capture.");
+
+                    if (useRaycastDetection && !tryPhysicsFirst)
+                    {
+                        detectedShip = RaycastDetectShip();
+                        contactConfirmed = (detectedShip != null);
+                    }
                 }
             }
             finally
@@ -320,7 +350,7 @@ public class EOIRCameraController : MonoBehaviour
                 }
             }
         }
-        else if (useRaycastDetection)
+        else if (!contactConfirmed && useRaycastDetection)
         {
             // Fallback mode when YOLO is disabled/unavailable.
             detectedShip = RaycastDetectShip();
@@ -360,41 +390,149 @@ public class EOIRCameraController : MonoBehaviour
 
     private SimulatedShip RaycastDetectShip()
     {
-        //Ray ray = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        RaycastHit hit;
+        Ray centerRay = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
 
-        if (Physics.SphereCast(eoirCamera.transform.position, 5f, eoirCamera.transform.forward, out hit, detectionRange))
+        // Prefer exact center hits first, but score all candidates by reticle alignment.
+        RaycastHit[] rayHits = Physics.RaycastAll(centerRay, detectionRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        SimulatedShip raycastShip = SelectBestShipFromHits(rayHits, physicsHitSelectionTolerance);
+        if (raycastShip != null)
         {
-            SimulatedShip ship = hit.collider.GetComponent<SimulatedShip>();
-            if (ship != null)
+            sphereCastTarget = raycastShip.gameObject;
+            UpdateStatusText($"Ship detected {raycastShip.shipName} by center raycast");
+            return raycastShip;
+        }
+        
+        // Fallback to sphere around reticle and again choose best aligned candidate.
+        RaycastHit[] sphereHits = Physics.SphereCastAll(centerRay, detectionSphereRadius, detectionRange, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+        SimulatedShip sphereShip = SelectBestShipFromHits(sphereHits, physicsHitSelectionTolerance);
+        if (sphereShip != null)
+        {
+            sphereCastTarget = sphereShip.gameObject;
+            UpdateStatusText($"Ship detected {sphereShip.shipName} by spherecast");
+            return sphereShip;
+        }
+        
+        if (useViewportFallbackDetection)
+        {
+            SimulatedShip fallbackShip = GetBestShipNearReticle(viewportFallbackCenterTolerance);
+            if (fallbackShip != null)
             {
-                // Check if ship is centered in the camera view
-                // Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(ship.transform.position);
-                // float centerDistance = Vector2.Distance(
-                //     new Vector2(viewPortPoint.x, viewPortPoint.y),
-                //     new Vector2(0.5f, 0.5f)
-                // );
-                sphereCastTarget = ship.gameObject;
-                UpdateStatusText($"Ship detected {ship.shipName} by Spherecast");
-                // Ship has to be within 40% of the center of the view to be considered a valid detection
-                // if (centerDistance < 0.4f) // Adjust this threshold as needed
-                // {
-                //     UpdateStatusText($"Ship detected {ship.shipName}");
-                //     return ship;
-                // }
-                // else
-                // {
-                //     UpdateStatusText("Ship detected but not centered. Adjust camera aim.");
-                //     return null;
-                // }
-            }
-            else 
-            {
-                sphereCastTarget = null;
-                UpdateStatusText("Spherecast hit an object but it is not a ship.");
+                sphereCastTarget = fallbackShip.gameObject;
+                UpdateStatusText($"Ship detected {fallbackShip.shipName} by viewport fallback");
+                return fallbackShip;
             }
         }
+        
+        sphereCastTarget = null;
         return null;
+    }
+    
+    private SimulatedShip ResolveShipFromHit(RaycastHit hit)
+    {
+        if (hit.collider == null)
+        {
+            return null;
+        }
+        
+        SimulatedShip ship = hit.collider.GetComponent<SimulatedShip>();
+        if (ship != null)
+        {
+            return ship;
+        }
+        
+        return hit.collider.GetComponentInParent<SimulatedShip>();
+    }
+
+    private SimulatedShip SelectBestShipFromHits(RaycastHit[] hits, float maxCenterDistance)
+    {
+        if (hits == null || hits.Length == 0)
+        {
+            return null;
+        }
+
+        HashSet<int> visitedShips = new HashSet<int>();
+        SimulatedShip bestShip = null;
+        float bestCenterDistance = float.MaxValue;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            SimulatedShip ship = ResolveShipFromHit(hits[i]);
+            if (ship == null)
+            {
+                continue;
+            }
+
+            int shipId = ship.GetInstanceID();
+            if (visitedShips.Contains(shipId))
+            {
+                continue;
+            }
+            visitedShips.Add(shipId);
+
+            Vector3 worldRef = GetShipReferencePoint(ship);
+            Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(worldRef);
+            if (viewPortPoint.z <= 0f)
+            {
+                continue;
+            }
+
+            float centerDistance = Vector2.Distance(new Vector2(viewPortPoint.x, viewPortPoint.y), new Vector2(0.5f, 0.5f));
+            if (centerDistance <= maxCenterDistance && centerDistance < bestCenterDistance)
+            {
+                bestCenterDistance = centerDistance;
+                bestShip = ship;
+            }
+        }
+
+        return bestShip;
+    }
+
+    private Vector3 GetShipReferencePoint(SimulatedShip ship)
+    {
+        Collider shipCollider = ship.GetComponentInChildren<Collider>();
+        if (shipCollider != null)
+        {
+            return shipCollider.bounds.center;
+        }
+
+        return ship.transform.position;
+    }
+    
+    private SimulatedShip GetBestShipNearReticle(float maxCenterDistance)
+    {
+        SimulatedShip bestShip = null;
+        float bestCenterDistance = float.MaxValue;
+        
+        foreach (SimulatedShip ship in FindObjectsOfType<SimulatedShip>())
+        {
+            if (ship == null)
+            {
+                continue;
+            }
+            
+            Vector3 worldRef = GetShipReferencePoint(ship);
+            Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(worldRef);
+            bool inView = viewPortPoint.z > 0f && viewPortPoint.x >= 0f && viewPortPoint.x <= 1f && viewPortPoint.y >= 0f && viewPortPoint.y <= 1f;
+            if (!inView)
+            {
+                continue;
+            }
+            
+            float distance = Vector3.Distance(eoirCamera.transform.position, worldRef);
+            if (distance > detectionRange)
+            {
+                continue;
+            }
+            
+            float centerDistance = Vector2.Distance(new Vector2(viewPortPoint.x, viewPortPoint.y), new Vector2(0.5f, 0.5f));
+            if (centerDistance <= maxCenterDistance && centerDistance < bestCenterDistance)
+            {
+                bestCenterDistance = centerDistance;
+                bestShip = ship;
+            }
+        }
+        
+        return bestShip;
     }
 
     private SimulatedShip GetShipInView()
