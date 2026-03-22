@@ -4,9 +4,13 @@ using UnityEngine;
 
 public static class FFmpegNative
 {
-    #if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
+    #if UNITY_ANDROID
+    const string LIB = "ffwrap";
+    #elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
     const string LIB = "libffwrap.dylib";
     #elif UNITY_STANDALONE_WIN
+    const string LIB = "ffwrap";
+    #else
     const string LIB = "ffwrap";
     #endif
 

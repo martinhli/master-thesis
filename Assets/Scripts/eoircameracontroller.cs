@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 using Data;
+using UnityEngine.XR;
 
 using TMPro;
 using Vector2 = UnityEngine.Vector2;
@@ -103,6 +104,25 @@ public class EOIRCameraController : MonoBehaviour
     [Tooltip("VR controller input button to capture camera control input")]
     public bool useVRControllerInput = false;
 
+    [Header("Quest 2 Controller Settings")]
+    [Tooltip("Deadzone used for right joystick camera movement")]
+    [Range(0.01f, 0.5f)]
+    public float rightStickDeadzone = 0.2f;
+
+    [Tooltip("Optional multiplier for right joystick pan/tilt speed")]
+    public float rightStickSensitivity = 1f;
+
+    [Tooltip("When enabled, EOIR stick/A/B input only works while holding right grip")]
+    public bool requireRightGripForEOIRControl = true;
+
+    [Tooltip("Fallback threshold if grip is exposed as an axis instead of a button")]
+    [Range(0.1f, 1f)]
+    public float rightGripAxisThreshold = 0.6f;
+
+    private InputDevice rightController;
+    private bool previousAButtonState;
+    private bool previousBButtonState;
+
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
     public event System.Action OnNoShipDetected;
@@ -127,6 +147,8 @@ public class EOIRCameraController : MonoBehaviour
         ApplyCameraRotation();
 
         UpdateStatusText("[EO/IR] EO/IR Camera Ready");
+
+        TryInitializeRightController();
     }
 
     void Update()
@@ -206,6 +228,11 @@ public class EOIRCameraController : MonoBehaviour
         {
             ResetCamera();
         }
+
+        if (useVRControllerInput)
+        {
+            HandleVRCameraControl();
+        }
     }
     
     private void HandleCapture()
@@ -219,7 +246,15 @@ public class EOIRCameraController : MonoBehaviour
 
         if (useVRControllerInput)
         {
-            // Going to use the Oculus Quest controller
+            if (IsEOIRControlActive())
+            {
+                capturePressed |= IsRightControllerButtonDown(CommonUsages.primaryButton, ref previousAButtonState);
+            }
+            else
+            {
+                // Keep edge-trigger state in sync so A does not fire when grip is pressed later.
+                SyncRightControllerButtonState(CommonUsages.primaryButton, ref previousAButtonState);
+            }
 
         }
 
@@ -228,6 +263,158 @@ public class EOIRCameraController : MonoBehaviour
             FlashScreen();
             CaptureImage();
         }
+    }
+
+    private void HandleVRCameraControl()
+    {
+        if (!TryInitializeRightController())
+        {
+            return;
+        }
+
+        bool eoirControlActive = IsEOIRControlActive();
+
+        if (!eoirControlActive)
+        {
+            // Keep edge-trigger state in sync so B does not fire when grip is pressed later.
+            SyncRightControllerButtonState(CommonUsages.secondaryButton, ref previousBButtonState);
+            return;
+        }
+
+        Vector2 rightStick;
+        if (rightController.TryGetFeatureValue(CommonUsages.primary2DAxis, out rightStick))
+        {
+            float horizontal = Mathf.Abs(rightStick.x) >= rightStickDeadzone ? rightStick.x : 0f;
+            float vertical = Mathf.Abs(rightStick.y) >= rightStickDeadzone ? rightStick.y : 0f;
+
+            if (!Mathf.Approximately(horizontal, 0f))
+            {
+                float panAmount = horizontal * rotationSpeed * rightStickSensitivity * Time.deltaTime;
+                if (panAmount > 0f)
+                {
+                    PanRight(panAmount);
+                }
+                else
+                {
+                    PanLeft(-panAmount);
+                }
+            }
+
+            if (!Mathf.Approximately(vertical, 0f))
+            {
+                float tiltAmount = vertical * rotationSpeed * rightStickSensitivity * Time.deltaTime;
+                if (tiltAmount > 0f)
+                {
+                    TiltUp(tiltAmount);
+                }
+                else
+                {
+                    TiltDown(-tiltAmount);
+                }
+            }
+        }
+
+        if (IsRightControllerButtonDown(CommonUsages.secondaryButton, ref previousBButtonState))
+        {
+            ResetCamera();
+        }
+    }
+
+    private bool IsEOIRControlActive()
+    {
+        if (!useVRControllerInput)
+        {
+            return false;
+        }
+
+        if (!TryInitializeRightController())
+        {
+            return false;
+        }
+
+        if (!requireRightGripForEOIRControl)
+        {
+            return true;
+        }
+
+        bool gripButtonPressed;
+        if (rightController.TryGetFeatureValue(CommonUsages.gripButton, out gripButtonPressed))
+        {
+            return gripButtonPressed;
+        }
+
+        float gripAxis;
+        if (rightController.TryGetFeatureValue(CommonUsages.grip, out gripAxis))
+        {
+            return gripAxis >= rightGripAxisThreshold;
+        }
+
+        return false;
+    }
+
+    /// <summary>
+    /// VR Controller Input Handling Functions
+    /// </summary>
+
+    private bool TryInitializeRightController()
+    {
+        if (rightController.isValid)
+        {
+            return true;
+        }
+
+        List<InputDevice> devices = new List<InputDevice>();
+        InputDevices.GetDevicesWithCharacteristics(
+            InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.HeldInHand | InputDeviceCharacteristics.Right,
+            devices);
+
+        if (devices.Count == 0)
+        {
+            return false;
+        }
+
+        rightController = devices[0];
+        previousAButtonState = false;
+        previousBButtonState = false;
+        return rightController.isValid;
+    }
+
+    private bool IsRightControllerButtonDown(InputFeatureUsage<bool> buttonUsage, ref bool previousButtonState)
+    {
+        if (!TryInitializeRightController())
+        {
+            previousButtonState = false;
+            return false;
+        }
+
+        bool currentButtonState;
+        if (!rightController.TryGetFeatureValue(buttonUsage, out currentButtonState))
+        {
+            previousButtonState = false;
+            return false;
+        }
+
+        bool pressedThisFrame = currentButtonState && !previousButtonState;
+        previousButtonState = currentButtonState;
+        return pressedThisFrame;
+    }
+
+    private void SyncRightControllerButtonState(InputFeatureUsage<bool> buttonUsage, ref bool previousButtonState)
+    {
+        if (!TryInitializeRightController())
+        {
+            previousButtonState = false;
+            return;
+        }
+
+        bool currentButtonState;
+        if (!rightController.TryGetFeatureValue(buttonUsage, out currentButtonState))
+        {
+            previousButtonState = false;
+            return;
+        }
+
+        previousButtonState = currentButtonState;
     }
 
     /// <summary>
