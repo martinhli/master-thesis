@@ -57,3 +57,6 @@ Assets/_Recovery.meta
 # Unity crash dumps
 mono_crash*
 *.blob
+
+# Android build artifacts
+*.apk
