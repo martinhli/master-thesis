@@ -1,4 +1,28 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 35b948c7965a94f5bbdacfeba9911580
+labels:
+- gvh
+PluginImporter:
+  externalObjects: {}
+  serializedVersion: 3
+  iconMap: {}
+  executionOrder: {}
+  defineConstraints: []
+  isPreloaded: 0
+  isOverridable: 0
+  isExplicitlyReferenced: 0
+  validateReferences: 1
+  platformData:
+    Any:
+      enabled: 0
+      settings: {}
+    Editor:
+      enabled: 1
+      settings:
+        DefaultValueInitialized: true
+    WindowsStoreApps:
+=======
 guid: 61c24b9980ea49ae90c8b62fb489de77
 labels:
 - gvh_version-1.2.185
@@ -27,6 +51,7 @@ PluginImporter:
   - first:
       Windows Store Apps: WindowsStoreApps
     second:
+>>>>>>> origin/feature/vr-scene
       enabled: 0
       settings:
         CPU: AnyCPU

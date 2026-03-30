@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: f36371abd432641beba1fe72e074ce14
+=======
 guid: 0f391b7885d6447b987adbe4f4771a60
+>>>>>>> origin/feature/vr-scene
 PluginImporter:
   externalObjects: {}
   serializedVersion: 3
@@ -13,6 +17,9 @@ PluginImporter:
   platformData:
     Any:
       enabled: 1
+<<<<<<< HEAD
+      settings: {}
+=======
       settings:
         Exclude Editor: 0
         Exclude Linux64: 1
@@ -49,6 +56,7 @@ PluginImporter:
         CPU: AnyCPU
         CompileFlags: 
         FrameworkDependencies: 
+>>>>>>> origin/feature/vr-scene
   userData: 
   assetBundleName: 
   assetBundleVariant: 

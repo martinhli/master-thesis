@@ -1,4 +1,7 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 84e94501c58e149e3b9409908ee24f5d
+=======
 guid: 25baa277777e54b869b1591066e7c4df
 PluginImporter:
   externalObjects: {}
@@ -56,3 +59,4 @@ PluginImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+>>>>>>> origin/feature/vr-scene

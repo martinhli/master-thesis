@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 3ad84e5c06bb94cd1ae514c148edc2cd
+=======
 guid: d858c31402dcc4c10b410d439ca9292d
+>>>>>>> origin/feature/vr-scene
 TextScriptImporter:
   externalObjects: {}
   userData: 

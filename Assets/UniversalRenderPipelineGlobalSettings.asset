@@ -66,6 +66,9 @@ MonoBehaviour:
       - rid: 1047145693548380161
       - rid: 1047145693548380162
     m_RuntimeSettings:
+<<<<<<< HEAD
+      m_List: []
+=======
       m_List:
       - rid: 2389306971344863306
       - rid: 2389306971344863312
@@ -79,6 +82,7 @@ MonoBehaviour:
       - rid: 2389306971344863328
       - rid: 2389306971344863329
       - rid: 2389306971344863330
+>>>>>>> origin/feature/vr-scene
   m_AssetVersion: 9
   m_ObsoleteDefaultVolumeProfile: {fileID: 0}
   m_RenderingLayerNames:

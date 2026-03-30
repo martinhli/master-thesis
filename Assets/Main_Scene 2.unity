@@ -179,6 +179,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+<<<<<<< HEAD
+=======
     - target: {fileID: -7511558181221131132, guid: 845b4d07234304c12929ab13797bbfc1, type: 3}
       propertyPath: 'm_Materials.Array.data[0]'
       value: 
@@ -199,16 +201,21 @@ PrefabInstance:
       propertyPath: 'm_Materials.Array.data[6]'
       value: 
       objectReference: {fileID: 2100000, guid: ae28d74c2462a9e47b7c3acc4abe8423, type: 2}
+>>>>>>> origin/feature/vr-scene
     - target: {fileID: 919132149155446097, guid: 845b4d07234304c12929ab13797bbfc1, type: 3}
       propertyPath: m_Name
       value: aircraft
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
+<<<<<<< HEAD
+    m_AddedGameObjects: []
+=======
     m_AddedGameObjects:
     - targetCorrespondingSourceObject: {fileID: -8679921383154817045, guid: 845b4d07234304c12929ab13797bbfc1, type: 3}
       insertIndex: -1
       addedObject: {fileID: 1595501870}
+>>>>>>> origin/feature/vr-scene
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 845b4d07234304c12929ab13797bbfc1, type: 3}
 --- !u!4 &64213244 stripped
@@ -249,8 +256,12 @@ MonoBehaviour:
   correlationTimeThreshold: 60
   trackInactivityTimeout: 120
   minObservationsForValidTrack: 3
+<<<<<<< HEAD
+  overlaySystem: {fileID: 857207533}
+=======
   verboseLogging: 1
   overlaySystem: {fileID: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!4 &118463708
 Transform:
   m_ObjectHideFlags: 0
@@ -266,6 +277,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
+=======
 --- !u!1 &191461855
 GameObject:
   m_ObjectHideFlags: 0
@@ -737,6 +750,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!1001 &449651065
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -834,8 +848,13 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
+<<<<<<< HEAD
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+=======
   m_Size: {x: 4.513672, y: 6.3754034, z: 19.737879}
   m_Center: {x: 0.038085938, y: 2.6877017, z: -0.015683174}
+>>>>>>> origin/feature/vr-scene
 --- !u!23 &449651068
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -861,7 +880,11 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
+<<<<<<< HEAD
+  - {fileID: 0}
+=======
   - {fileID: 2100000, guid: 2211aa1d61fd79e49a5ae017e09f71d2, type: 2}
+>>>>>>> origin/feature/vr-scene
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -894,6 +917,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 449651066}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
+  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
+  shipName: MV Military
+  mmsi: 257123456
+  imo: IMO1234567
+  shipType: 4
+  aisTransponder: 1
+  radarCrossSection: 0.75
+  aisRange: 5000
+  enableAutopilot: 1
+  autopilotSpeed: 10
+  autopilotCourse: 15
+=======
   m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
@@ -907,6 +945,7 @@ MonoBehaviour:
   enableAutopilot: 1
   autopilotSpeed: 15
   autopilotCourse: 45
+>>>>>>> origin/feature/vr-scene
   turnResponsiveness: 2
   yawOffsetDegrees: 0
   disableGravity: 1
@@ -949,7 +988,10 @@ GameObject:
   m_Component:
   - component: {fileID: 465494012}
   - component: {fileID: 465494011}
+<<<<<<< HEAD
+=======
   - component: {fileID: 465494013}
+>>>>>>> origin/feature/vr-scene
   m_Layer: 0
   m_Name: Directional Light
   m_TagString: Untagged
@@ -1037,6 +1079,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
+<<<<<<< HEAD
+=======
 --- !u!114 &465494013
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1191,6 +1235,7 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &632241176
 GameObject:
   m_ObjectHideFlags: 0
@@ -1268,8 +1313,11 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1186557775}
+<<<<<<< HEAD
+=======
   - {fileID: 503691766}
   - {fileID: 1648215551}
+>>>>>>> origin/feature/vr-scene
   m_Father: {fileID: 1935654141}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &662428920
@@ -1288,7 +1336,11 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
+<<<<<<< HEAD
+  m_IsActive: 1
+=======
   m_IsActive: 0
+>>>>>>> origin/feature/vr-scene
 --- !u!114 &662428921
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1327,6 +1379,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
+=======
 --- !u!1 &673619288
 GameObject:
   m_ObjectHideFlags: 0
@@ -1454,6 +1508,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 50, y: 140, z: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &685006893
 GameObject:
   m_ObjectHideFlags: 0
@@ -1641,8 +1696,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 83e4e6cca11330d4088d729ab4fc9d9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.XRInteractionManager
+<<<<<<< HEAD
+=======
   m_StartingHoverFilters: []
   m_StartingSelectFilters: []
+>>>>>>> origin/feature/vr-scene
 --- !u!4 &820427699
 Transform:
   m_ObjectHideFlags: 0
@@ -1684,12 +1742,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 857207532}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
+  m_Script: {fileID: 11500000, guid: 82c2772b632a84da48062fdf702e8891, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::AISOverlay
+  eoCamera: {fileID: 1186557780}
+  screenTransform: {fileID: 0}
+  videoQuad: {fileID: 1186557775}
+  videoWidth: 1920
+  videoHeight: 1080
+  annotationVisualPrefab: {fileID: 0}
+=======
   m_Script: {fileID: 11500000, guid: df8a17571f40546f499a1642096b255e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AISOverlay
   trackManager: {fileID: 118463707}
   labelPrefab: {fileID: 1549653684184420956, guid: d4c65620a95a6478582c5b6b9df1b1d2, type: 3}
   overlayCamera: {fileID: 1186557780}
+>>>>>>> origin/feature/vr-scene
 --- !u!4 &857207534
 Transform:
   m_ObjectHideFlags: 0
@@ -1705,6 +1775,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
+=======
 --- !u!1 &896885229
 GameObject:
   m_ObjectHideFlags: 0
@@ -1842,6 +1914,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 896885229}
   m_CullTransparentMesh: 1
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &1186557774
 GameObject:
   m_ObjectHideFlags: 0
@@ -1852,9 +1925,17 @@ GameObject:
   m_Component:
   - component: {fileID: 1186557775}
   - component: {fileID: 1186557780}
+<<<<<<< HEAD
+  - component: {fileID: 1186557779}
+  - component: {fileID: 1186557778}
+  - component: {fileID: 1186557777}
+  - component: {fileID: 1186557776}
+  - component: {fileID: 1186557781}
+=======
   - component: {fileID: 1186557776}
   - component: {fileID: 1186557781}
   - component: {fileID: 1186557782}
+>>>>>>> origin/feature/vr-scene
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -1870,13 +1951,21 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1186557774}
   serializedVersion: 2
+<<<<<<< HEAD
+  m_LocalRotation: {x: 0.06162845, y: 0.70441604, z: -0.06162845, w: 0.70441604}
+=======
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+>>>>>>> origin/feature/vr-scene
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 653849279}
+<<<<<<< HEAD
+  m_LocalEulerAnglesHint: {x: 10, y: 90, z: 0}
+=======
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!114 &1186557776
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1911,8 +2000,13 @@ MonoBehaviour:
         m_Action: Position
         m_Flags: 0
       - m_Name: 
+<<<<<<< HEAD
+        m_Id: cb2179bf-cee6-419b-b427-1d3fcc707dd1
+        m_Path: <HandheldARInputDevice>/devicePosition
+=======
         m_Id: a55b5c34-d8b0-418c-8e33-7b3578466abc
         m_Path: <XRHMD>/devicePosition
+>>>>>>> origin/feature/vr-scene
         m_Interactions: 
         m_Processors: 
         m_Groups: 
@@ -1939,8 +2033,13 @@ MonoBehaviour:
         m_Action: Rotation
         m_Flags: 0
       - m_Name: 
+<<<<<<< HEAD
+        m_Id: a41414a3-c5fa-4439-9f9a-e07e6f3a0312
+        m_Path: <HandheldARInputDevice>/deviceRotation
+=======
         m_Id: b6224d09-9794-4c3e-995c-a4c264ed251f
         m_Path: <XRHMD>/deviceRotation
+>>>>>>> origin/feature/vr-scene
         m_Interactions: 
         m_Processors: 
         m_Groups: 
@@ -1957,6 +2056,9 @@ MonoBehaviour:
       m_Id: 844b8b92-9e9c-454b-a0bc-bf53c05ab31c
       m_Processors: 
       m_Interactions: 
+<<<<<<< HEAD
+      m_SingletonActionBindings: []
+=======
       m_SingletonActionBindings:
       - m_Name: 
         m_Id: f96d72f9-eba1-42c2-8d3d-9348053b540f
@@ -1966,6 +2068,7 @@ MonoBehaviour:
         m_Groups: 
         m_Action: Tracking State
         m_Flags: 0
+>>>>>>> origin/feature/vr-scene
       m_Flags: 0
     m_Reference: {fileID: 0}
   m_PositionAction:
@@ -1986,6 +2089,50 @@ MonoBehaviour:
     m_Interactions: 
     m_SingletonActionBindings: []
     m_Flags: 0
+<<<<<<< HEAD
+--- !u!114 &1186557777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186557774}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 816b289ef451e094f9ae174fb4cf8db0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARCameraBackground
+  m_UseCustomMaterial: 0
+  m_CustomMaterial: {fileID: 0}
+--- !u!114 &1186557778
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186557774}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4966719baa26e4b0e8231a24d9bd491a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARCameraManager
+  m_FocusMode: -1
+  m_LightEstimationMode: -1
+  m_AutoFocus: 1
+  m_ImageStabilization: 0
+  m_LightEstimation: 0
+  m_FacingDirection: 1
+  m_RenderMode: 0
+--- !u!81 &1186557779
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1186557774}
+  m_Enabled: 1
+=======
+>>>>>>> origin/feature/vr-scene
 --- !u!20 &1186557780
 Camera:
   m_ObjectHideFlags: 0
@@ -2017,7 +2164,11 @@ Camera:
     y: 0
     width: 1
     height: 1
+<<<<<<< HEAD
+  near clip plane: 0.1
+=======
   near clip plane: 0.01
+>>>>>>> origin/feature/vr-scene
   far clip plane: 100000
   field of view: 75
   orthographic: 0
@@ -2081,6 +2232,8 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
+<<<<<<< HEAD
+=======
 --- !u!114 &1186557782
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2375,6 +2528,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1344406359}
   m_CullTransparentMesh: 1
+>>>>>>> origin/feature/vr-scene
 --- !u!1001 &1351383884
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2469,8 +2623,13 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
+<<<<<<< HEAD
+  m_Size: {x: 1, y: 1, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
+=======
   m_Size: {x: 1, y: 5.7496433, z: 21.095154}
   m_Center: {x: 0, y: 2.3748221, z: 0.6778259}
+>>>>>>> origin/feature/vr-scene
 --- !u!23 &1351383887
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -2496,7 +2655,11 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
+<<<<<<< HEAD
+  - {fileID: 0}
+=======
   - {fileID: 2100000, guid: 2211aa1d61fd79e49a5ae017e09f71d2, type: 2}
+>>>>>>> origin/feature/vr-scene
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -2529,6 +2692,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1351383885}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
+  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
+  shipName: MV Other
+  mmsi: 257123457
+  imo: IMO1234567
+  shipType: 5
+  aisTransponder: 1
+  radarCrossSection: 0.64
+  aisRange: 5000
+  enableAutopilot: 1
+  autopilotSpeed: 10
+=======
   m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
@@ -2541,6 +2718,7 @@ MonoBehaviour:
   aisRange: 5000
   enableAutopilot: 1
   autopilotSpeed: 12
+>>>>>>> origin/feature/vr-scene
   autopilotCourse: 30
   turnResponsiveness: 2
   yawOffsetDegrees: 0
@@ -2574,6 +2752,8 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+<<<<<<< HEAD
+=======
 --- !u!1 &1383963620
 GameObject:
   m_ObjectHideFlags: 0
@@ -2653,6 +2833,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &1414264970
 GameObject:
   m_ObjectHideFlags: 0
@@ -2719,6 +2900,9 @@ MonoBehaviour:
   eoirFOV: 75
   aisEnabled: 1
   radarEnabled: 1
+<<<<<<< HEAD
+  eoirEnabled: 0
+=======
   eoirEnabled: 1
 --- !u!1 &1414815846
 GameObject:
@@ -2855,6 +3039,7 @@ MonoBehaviour:
   timeText: {fileID: 1787253598}
   showOverlay: 1
   cameraMode: EO/IR
+>>>>>>> origin/feature/vr-scene
 --- !u!1001 &1503100953
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2932,9 +3117,12 @@ PrefabInstance:
       addedObject: {fileID: 1503100956}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       insertIndex: -1
+<<<<<<< HEAD
+=======
       addedObject: {fileID: 1503100958}
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
       insertIndex: -1
+>>>>>>> origin/feature/vr-scene
       addedObject: {fileID: 1503100955}
   m_SourcePrefab: {fileID: 100100000, guid: 8421b4bd1939c4728901ec1eb7ea5891, type: 3}
 --- !u!1 &1503100954 stripped
@@ -2951,6 +3139,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 1503100954}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
+  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
+  shipName: MV Cargo
+  mmsi: 257123468
+  imo: IMO1234567
+  shipType: 0
+  aisTransponder: 1
+  radarCrossSection: 2.26
+  aisRange: 5000
+  enableAutopilot: 1
+  autopilotSpeed: 12
+=======
   m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
@@ -2963,6 +3165,7 @@ MonoBehaviour:
   aisRange: 5000
   enableAutopilot: 1
   autopilotSpeed: 10
+>>>>>>> origin/feature/vr-scene
   autopilotCourse: 0
   turnResponsiveness: 2
   yawOffsetDegrees: 90
@@ -2996,20 +3199,156 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+<<<<<<< HEAD
+--- !u!1001 &1643264373
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 0}
+    m_Modifications:
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalScale.x
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalScale.y
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalScale.z
+      value: 100
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 20000
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -1500
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0.7071068
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 90
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_ConstrainProportionsScale
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      propertyPath: m_Name
+      value: passenger
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1643264376}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1643264375}
+  m_SourcePrefab: {fileID: 100100000, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+--- !u!1 &1643264374 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
+  m_PrefabInstance: {fileID: 1643264373}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1643264375
+MonoBehaviour:
+=======
 --- !u!65 &1503100958
 BoxCollider:
+>>>>>>> origin/feature/vr-scene
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
+<<<<<<< HEAD
+  m_GameObject: {fileID: 1643264374}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
+  shipName: MV Passenger
+  mmsi: 257123469
+  imo: IMO1234567
+  shipType: 2
+  aisTransponder: 1
+  radarCrossSection: 1.55
+  aisRange: 5000
+  enableAutopilot: 1
+  autopilotSpeed: 12
+  autopilotCourse: 10
+  turnResponsiveness: 2
+  yawOffsetDegrees: 0
+  disableGravity: 1
+  freezeRollAndPitch: 1
+  shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+--- !u!54 &1643264376
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1643264374}
+  serializedVersion: 5
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_CenterOfMass: {x: 0, y: 0, z: 0}
+  m_InertiaTensor: {x: 1, y: 1, z: 1}
+  m_InertiaRotation: {x: 0, y: 0, z: 0, w: 1}
+=======
   m_GameObject: {fileID: 1503100954}
   m_Material: {fileID: 0}
+>>>>>>> origin/feature/vr-scene
   m_IncludeLayers:
     serializedVersion: 2
     m_Bits: 0
   m_ExcludeLayers:
     serializedVersion: 2
     m_Bits: 0
+<<<<<<< HEAD
+  m_ImplicitCom: 1
+  m_ImplicitTensor: 1
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 0
+  m_CollisionDetection: 0
+=======
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
@@ -3633,6 +3972,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1698224556}
   m_CullTransparentMesh: 1
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &1711396307
 GameObject:
   m_ObjectHideFlags: 0
@@ -3698,6 +4038,8 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+<<<<<<< HEAD
+=======
 --- !u!1 &1787253596
 GameObject:
   m_ObjectHideFlags: 0
@@ -3835,6 +4177,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1787253596}
   m_CullTransparentMesh: 1
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &1807799330
 GameObject:
   m_ObjectHideFlags: 0
@@ -3853,7 +4196,11 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
+<<<<<<< HEAD
+  m_IsActive: 1
+=======
   m_IsActive: 0
+>>>>>>> origin/feature/vr-scene
 --- !u!114 &1807799331
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3908,6 +4255,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 00d38a23bc25a4976b91f66d4b5825da, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ARInputManagerWrapper
+<<<<<<< HEAD
+=======
 --- !u!1 &1838169962
 GameObject:
   m_ObjectHideFlags: 0
@@ -4055,6 +4404,7 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1890296587}
   m_CullTransparentMesh: 1
+>>>>>>> origin/feature/vr-scene
 --- !u!1 &1935654137
 GameObject:
   m_ObjectHideFlags: 0
@@ -4065,6 +4415,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1935654141}
   - component: {fileID: 1935654140}
+<<<<<<< HEAD
+  - component: {fileID: 1935654139}
+  - component: {fileID: 1935654138}
+=======
+>>>>>>> origin/feature/vr-scene
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -4072,6 +4427,44 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+<<<<<<< HEAD
+--- !u!114 &1935654138
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935654137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4dea56a9eaadd1c439095de4f9a371cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARTrackedImageManager
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_SerializedLibrary: {fileID: 11400000, guid: 6a1ca31aa9fae4eee9e038bf37896252, type: 2}
+  m_MaxNumberOfMovingImages: 1
+  m_TrackedImagePrefab: {fileID: 0}
+--- !u!114 &1935654139
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935654137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e1760703bbd54c04488a8d10600262ab, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.ARFoundation::UnityEngine.XR.ARFoundation.ARPlaneManager
+  <trackablesChanged>k__BackingField:
+    m_PersistentCalls:
+      m_Calls: []
+  m_PlanePrefab: {fileID: 0}
+  m_DetectionMode: -1
+=======
+>>>>>>> origin/feature/vr-scene
 --- !u!114 &1935654140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4087,8 +4480,13 @@ MonoBehaviour:
   m_Camera: {fileID: 1186557780}
   m_OriginBaseGameObject: {fileID: 1935654137}
   m_CameraFloorOffsetObject: {fileID: 653849278}
+<<<<<<< HEAD
+  m_RequestedTrackingOriginMode: 0
+  m_CameraYOffset: 0
+=======
   m_RequestedTrackingOriginMode: 1
   m_CameraYOffset: 1.1176
+>>>>>>> origin/feature/vr-scene
 --- !u!4 &1935654141
 Transform:
   m_ObjectHideFlags: 0
@@ -4097,13 +4495,21 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1935654137}
   serializedVersion: 2
+<<<<<<< HEAD
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.7, y: 1200, z: 16.6}
+=======
   m_LocalRotation: {x: 0, y: 1, z: 0, w: 0}
   m_LocalPosition: {x: 0.4, y: 1198.8824, z: 16.8}
+>>>>>>> origin/feature/vr-scene
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 653849279}
   m_Father: {fileID: 0}
+<<<<<<< HEAD
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+=======
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
 --- !u!1001 &1983559118
 PrefabInstance:
@@ -4518,6 +4924,7 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 78feb16bf91b345a3886181a93c655d8, type: 3}
   m_PrefabInstance: {fileID: 2068998438}
   m_PrefabAsset: {fileID: 0}
+>>>>>>> origin/feature/vr-scene
 --- !u!1001 &2130294813
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4579,9 +4986,12 @@ PrefabInstance:
       addedObject: {fileID: 2130294816}
     - targetCorrespondingSourceObject: {fileID: 5044891068901838743, guid: 4c5c0f15610f1c448ae7f0bca9cbb54c, type: 3}
       insertIndex: -1
+<<<<<<< HEAD
+=======
       addedObject: {fileID: 2130294818}
     - targetCorrespondingSourceObject: {fileID: 5044891068901838743, guid: 4c5c0f15610f1c448ae7f0bca9cbb54c, type: 3}
       insertIndex: -1
+>>>>>>> origin/feature/vr-scene
       addedObject: {fileID: 2130294815}
   m_SourcePrefab: {fileID: 100100000, guid: 4c5c0f15610f1c448ae7f0bca9cbb54c, type: 3}
 --- !u!1 &2130294814 stripped
@@ -4598,6 +5008,21 @@ MonoBehaviour:
   m_GameObject: {fileID: 2130294814}
   m_Enabled: 1
   m_EditorHideFlags: 0
+<<<<<<< HEAD
+  m_Script: {fileID: 11500000, guid: 84b37b24ad854d5ab9891950121e66e2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
+  shipName: MV Other 2
+  mmsi: 257123458
+  imo: IMO1234567
+  shipType: 5
+  aisTransponder: 1
+  radarCrossSection: 0.21
+  aisRange: 5000
+  enableAutopilot: 1
+  autopilotSpeed: 10
+  autopilotCourse: 10
+=======
   m_Script: {fileID: 11500000, guid: 295d0079354ae4bf48f72b1f7933ebc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SimulatedShip
@@ -4611,6 +5036,7 @@ MonoBehaviour:
   enableAutopilot: 1
   autopilotSpeed: 12
   autopilotCourse: 20
+>>>>>>> origin/feature/vr-scene
   turnResponsiveness: 2
   yawOffsetDegrees: 0
   disableGravity: 1
@@ -4643,6 +5069,8 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
+<<<<<<< HEAD
+=======
 --- !u!65 &2130294818
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -4664,6 +5092,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1, y: 2.5458996, z: 8.678833}
   m_Center: {x: 0, y: 0.8116151, z: 0.9959717}
+>>>>>>> origin/feature/vr-scene
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4681,14 +5110,21 @@ SceneRoots:
   - {fileID: 1351383884}
   - {fileID: 2130294813}
   - {fileID: 1503100953}
+<<<<<<< HEAD
+  - {fileID: 1643264373}
+=======
   - {fileID: 1983559118}
+>>>>>>> origin/feature/vr-scene
   - {fileID: 118463708}
   - {fileID: 1414264972}
   - {fileID: 632241178}
   - {fileID: 1711396309}
+<<<<<<< HEAD
+=======
   - {fileID: 2038060194}
   - {fileID: 374673359}
   - {fileID: 2068998438}
   - {fileID: 1216706051}
   - {fileID: 673619291}
   - {fileID: 1383963623}
+>>>>>>> origin/feature/vr-scene

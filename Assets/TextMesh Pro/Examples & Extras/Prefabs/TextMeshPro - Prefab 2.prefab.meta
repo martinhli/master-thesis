@@ -1,6 +1,12 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 2fdad67a3f1154de1ac927bcdb814e33
+PrefabImporter:
+  externalObjects: {}
+=======
 guid: fdad9d952ae84cafb74c63f2e694d042
 NativeFormatImporter:
+>>>>>>> origin/feature/vr-scene
   userData: 
   assetBundleName: 
   assetBundleVariant: 

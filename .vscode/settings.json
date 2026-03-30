@@ -66,5 +66,17 @@
     "explorer.fileNesting.patterns": {
         "*.sln": "*.csproj"
     },
+<<<<<<< HEAD
+    "dotnet.defaultSolution": "master-thesis.slnx",
+    "[csharp]": {
+        "editor.formatOnSave": false,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "never",
+            "source.addMissingImports": "never"
+        }
+    },
+    "dotnet.completion.showCompletionItemsFromUnimportedNamespaces": false
+=======
     "dotnet.defaultSolution": "master-thesis.slnx"
+>>>>>>> origin/feature/vr-scene
 }

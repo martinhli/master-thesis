@@ -3,8 +3,12 @@
 --- !u!78 &1
 TagManager:
   serializedVersion: 3
+<<<<<<< HEAD
+  tags: []
+=======
   tags:
   - ScreenAnchor
+>>>>>>> origin/feature/vr-scene
   layers:
   - Default
   - TransparentFX
@@ -36,7 +40,11 @@ TagManager:
   - 
   - 
   - 
+<<<<<<< HEAD
+  - 
+=======
   - XR Simulation
+>>>>>>> origin/feature/vr-scene
   - 
   m_SortingLayers:
   - name: Default

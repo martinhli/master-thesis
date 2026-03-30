@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
+guid: 1ffbf1234f2e2480d87d41207f4e0cc9
+=======
 guid: 8e25760799d21436b960642cda254dad
+>>>>>>> origin/feature/vr-scene
 DefaultImporter:
   externalObjects: {}
   userData: 
