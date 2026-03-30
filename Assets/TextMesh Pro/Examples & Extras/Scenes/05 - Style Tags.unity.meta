@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<< HEAD
-guid: e30c6466ff14e4364bcba2bae93e2ed4
-=======
 guid: 70615243e2be4a81afaab9bf5d273d65
->>>>>>> origin/feature/vr-scene
 labels:
 - Mesh
 - Text

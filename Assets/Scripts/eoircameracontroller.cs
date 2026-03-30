@@ -1,8 +1,4 @@
 using UnityEngine;
-<<<<<<< HEAD
-using System.Collections.Generic;
-using Data;
-=======
 using UnityEngine.UI;
 using System.Collections.Generic;
 using Data;
@@ -12,30 +8,11 @@ using TMPro;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
->>>>>>> origin/feature/vr-scene
 public class EOIRCameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
     [Tooltip("The EOIR camera that renders the ship scene")]
     public Camera eoirCamera;
-<<<<<<< HEAD
-
-    [Tooltip("Display screen for EOIR camera output")]
-    public RenderTexture cameraDisplay;
-
-    [Header("Camera Control Parameters")]
-    [Tooltip("Pan speed (degrees per second)")]
-    public float panSpeed = 30f;
-
-    [Tooltip("Tilt speed (degrees per second)")]
-    public float tiltSpeed = 30f;
-
-    [Tooltip("Zoom speed (units per second)")]
-    public float zoomSpeed = 5f;
-
-    [Tooltip ("Minimum FOV (max zoom in)")]
-    public float minFOV = 10f;
-=======
     public Transform cameraMount;
 
     [Header("Camera Control Parameters")]
@@ -56,17 +33,10 @@ public class EOIRCameraController : MonoBehaviour
 
     [Tooltip ("Minimum FOV (max zoom in)")]
     public float minFOV = 5f;
->>>>>>> origin/feature/vr-scene
 
     [Tooltip("Maximum FOV (max zoom out)")]
     public float maxFOV = 60f;
 
-<<<<<<< HEAD
-    [Header("Detection Parameters")]
-
-    //[Tooltip("YOLO detector")]
-    //public YOLODetector yoloDetector;
-=======
     [Header("Current Camera State")]
     public float currentPan = 0f;
     public float currentTilt = 15f;
@@ -102,17 +72,10 @@ public class EOIRCameraController : MonoBehaviour
 
     [Tooltip("When enabled, only the expected unknown contact counts as confirmed")]
     public bool requireExpectedContactMatch = false;
->>>>>>> origin/feature/vr-scene
 
     [Tooltip("Raycast detector")]
     public bool useRaycastDetection = true;
 
-<<<<<<< HEAD
-    [Tooltip("Detection range in meters")]
-    public float detectionRange = 15000f;
-
-    [Header("Input Settings")]
-=======
     [Tooltip("Detection range in meters (must exceed farthest scenario contact)")]
     public float detectionRange = 30000f;
 
@@ -135,23 +98,12 @@ public class EOIRCameraController : MonoBehaviour
 
     [Header("Input Settings")]
 
->>>>>>> origin/feature/vr-scene
     [Tooltip("Input key to capture camera control input")]
     public KeyCode captureInputKey = KeyCode.Space;
 
     [Tooltip("VR controller input button to capture camera control input")]
     public bool useVRControllerInput = false;
 
-<<<<<<< HEAD
-    [Header("UI Elements")]
-    public GameObject crosshairUI;
-    public UnityEngine.UI.Text statusText;
-    public UnityEngine.UI.Image flashEffect;
-
-    //Internal state variables
-    private float currentPan = 0f;
-    private float currentTilt = 0f;
-=======
     [Header("Quest 2 Controller Settings")]
     [Tooltip("Deadzone used for right joystick camera movement")]
     [Range(0.01f, 0.5f)]
@@ -170,7 +122,6 @@ public class EOIRCameraController : MonoBehaviour
     private InputDevice rightController;
     private bool previousAButtonState;
     private bool previousBButtonState;
->>>>>>> origin/feature/vr-scene
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -180,24 +131,6 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (eoirCamera == null)
         {
-<<<<<<< HEAD
-            Debug.LogError("[EO/IR] No camera assigned!");
-            enabled = false;
-            return;
-        }
-
-        // Setup camera feed display
-        if (cameraDisplay != null)
-        {
-            eoirCamera.targetTexture = cameraDisplay;
-        }
-
-        // Initialize camera orientation
-        currentPan = transform.localEulerAngles.y;
-        currentTilt = transform.localEulerAngles.x;
-
-        UpdateStatusText("EO/IR Camera Ready");
-=======
             eoirCamera = GetComponent<Camera>();
             Debug.LogError("[EO/IR] No camera assigned!");
             return;
@@ -216,48 +149,18 @@ public class EOIRCameraController : MonoBehaviour
         UpdateStatusText("[EO/IR] EO/IR Camera Ready");
 
         TryInitializeRightController();
->>>>>>> origin/feature/vr-scene
     }
 
     void Update()
     {
         HandleCameraControl();
-<<<<<<< HEAD
-=======
         UpdateCamera();
->>>>>>> origin/feature/vr-scene
         HandleCapture();
     }
 
     /// <summary>
     /// Camera Handling Functions
     /// </summary>
-<<<<<<< HEAD
-
-    private void HandleCameraControl()
-    {
-        // Keyboard input for testing
-        float panInput = 0f;
-        float tiltInput = 0f;
-        float zoomInput = 0f;
-
-        // Using WASD or arrow keys for pan/tilt control
-        if (Input.GetKey(KeyCode.A) || Input.GetKey(KeyCode.LeftArrow))
-        {
-            panInput = -1f;
-        }
-        if (Input.GetKey(KeyCode.D) || Input.GetKey(KeyCode.RightArrow))
-        {
-            panInput = 1f;
-        }
-        if (Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.UpArrow))
-        {
-            tiltInput = 1f;
-        }
-        if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
-        {
-            tiltInput = -1f;
-=======
     
     void UpdateCamera()
     {
@@ -308,39 +211,11 @@ public class EOIRCameraController : MonoBehaviour
         if (Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.DownArrow))
         {
             TiltDown(rotationSpeed* Time.deltaTime);
->>>>>>> origin/feature/vr-scene
         }
 
         //Using Q/E for zoom control
         if (Input.GetKey(KeyCode.Q))
         {
-<<<<<<< HEAD
-            zoomInput = 1f; // Zoom out
-        }
-        if (Input.GetKey(KeyCode.E))
-        {
-            zoomInput = -1f; // Zoom in
-        }
-
-        // Apply pan and tilt based on input
-        if (panInput != 0f || tiltInput != 0f)
-        {
-            currentPan += panInput * panSpeed * Time.deltaTime;
-            currentTilt += tiltInput * tiltSpeed * Time.deltaTime;
-
-            // Clamp tilt to prevent flipping
-            currentTilt = Mathf.Clamp(currentTilt, -90f, 90f);
-
-            // Apply rotation to camera
-            transform.localRotation = Quaternion.Euler(currentTilt, currentPan, 0f);
-        }
-
-        // Apply zoom based on input
-        if (zoomInput != 0f)
-        {
-            float newFOV = eoirCamera.fieldOfView + zoomInput * zoomSpeed * Time.deltaTime;
-            eoirCamera.fieldOfView = Mathf.Clamp(newFOV, minFOV, maxFOV);
-=======
             ZoomIn(zoomSpeed* Time.deltaTime); // Zoom in
         }
         if (Input.GetKey(KeyCode.E))
@@ -357,7 +232,6 @@ public class EOIRCameraController : MonoBehaviour
         if (useVRControllerInput)
         {
             HandleVRCameraControl();
->>>>>>> origin/feature/vr-scene
         }
     }
     
@@ -372,9 +246,6 @@ public class EOIRCameraController : MonoBehaviour
 
         if (useVRControllerInput)
         {
-<<<<<<< HEAD
-            // Going to use the Oculus Quest controller
-=======
             if (IsEOIRControlActive())
             {
                 capturePressed |= IsRightControllerButtonDown(CommonUsages.primaryButton, ref previousAButtonState);
@@ -384,22 +255,16 @@ public class EOIRCameraController : MonoBehaviour
                 // Keep edge-trigger state in sync so A does not fire when grip is pressed later.
                 SyncRightControllerButtonState(CommonUsages.primaryButton, ref previousAButtonState);
             }
->>>>>>> origin/feature/vr-scene
 
         }
 
         if (capturePressed)
         {
-<<<<<<< HEAD
-=======
             FlashScreen();
->>>>>>> origin/feature/vr-scene
             CaptureImage();
         }
     }
 
-<<<<<<< HEAD
-=======
     private void HandleVRCameraControl()
     {
         if (!TryInitializeRightController())
@@ -603,7 +468,6 @@ public class EOIRCameraController : MonoBehaviour
         currentTilt = 15f;
         currentZoom = 45f;
     }
->>>>>>> origin/feature/vr-scene
 
     /// <summary>
     /// Image Capture and Detection Functions
@@ -613,31 +477,6 @@ public class EOIRCameraController : MonoBehaviour
     {
         UpdateStatusText("Capturing image...");
 
-<<<<<<< HEAD
-        bool shipDetected = false;
-        SimulatedShip detectedShip = null;
-
-        // First try YOLO detection if enabled
-        // if (yoloDetector != null)
-        // {
-        //     shipDetected = yoloDetector.DetectShipInFrame(); //Need to implement this function in YOLODetector
-
-        //     if (shipDetected)
-        //     {
-        //         detectedShip = GetShipInView();
-        //     }
-        // }
-
-        // If YOLO didn't detect anything and raycast detection is enabled, try raycast
-        if (useRaycastDetection)
-        {
-            detectedShip = RaycastDetectShip(); // Need to implement this function to raycast from camera center and check for SimulatedShip hits within detectionRange
-            shipDetected = (detectedShip != null);
-        }
-
-        // Handle detection results
-        if (shipDetected && detectedShip != null)
-=======
         SimulatedShip detectedShip = null;
         bool contactConfirmed = false;
 
@@ -706,7 +545,6 @@ public class EOIRCameraController : MonoBehaviour
         }
 
         if (contactConfirmed && detectedShip != null)
->>>>>>> origin/feature/vr-scene
         {
             HandleDetectionSuccess(detectedShip);
         }
@@ -716,38 +554,6 @@ public class EOIRCameraController : MonoBehaviour
         }
     }
 
-<<<<<<< HEAD
-    private SimulatedShip RaycastDetectShip()
-    {
-        Ray ray = eoirCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, detectionRange))
-        {
-            SimulatedShip ship = hit.collider.GetComponent<SimulatedShip>();
-            if (ship != null)
-            {
-                // Check if ship is centered in the camera view
-                Vector3 viewPortPoint = eoirCamera.WorldToViewportPoint(ship.transform.position);
-                float centerDistance = Vector2.Distance(
-                    new Vector2(viewPortPoint.x, viewPortPoint.y),
-                    new Vector2(0.5f, 0.5f)
-                );
-                // Ship has to be within 20% of the center of the view to be considered a valid detection
-                if (centerDistance < 0.2f) // Adjust this threshold as needed
-                {
-                    return ship;
-                }
-                else
-                {
-                    UpdateStatusText("Ship detected but not centered. Adjust camera aim.");
-                    return null;
-                }
-            }
-        }
-        return null;
-    }
-=======
     private Texture2D CaptureCameraFrame()
     {
         RenderTexture rt = RenderTexture.GetTemporary(captureWidth, captureHeight, 24, RenderTextureFormat.ARGB32);
@@ -915,7 +721,6 @@ public class EOIRCameraController : MonoBehaviour
         
         return bestShip;
     }
->>>>>>> origin/feature/vr-scene
 
     private SimulatedShip GetShipInView()
     {
@@ -946,11 +751,7 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (statusText != null)
         {
-<<<<<<< HEAD
-            statusText.text = message;
-=======
             StartCoroutine(ShowStatusMessage(message, 3f)); // Show message for 3 seconds
->>>>>>> origin/feature/vr-scene
         }
     }
 
@@ -958,13 +759,6 @@ public class EOIRCameraController : MonoBehaviour
     {
         if (flashEffect != null)
         {
-<<<<<<< HEAD
-            StartCoroutine(FlashCoroutine());
-        }
-    }
-
-    private System.Collections.IEnumerator FlashCoroutine()
-=======
             StartCoroutine(Flash());
         }
     }
@@ -977,7 +771,6 @@ public class EOIRCameraController : MonoBehaviour
     }
 
     private System.Collections.IEnumerator Flash()
->>>>>>> origin/feature/vr-scene
     {
         // Flash the screen white to indicate a successful capture
         flashEffect.enabled = true;
@@ -985,11 +778,7 @@ public class EOIRCameraController : MonoBehaviour
         flashColor.a = 0.8f;
         flashEffect.color = flashColor;
 
-<<<<<<< HEAD
-        yield return new WaitForSeconds(0.1f); // Flash duration
-=======
         yield return new WaitForSeconds(2); // Flash duration
->>>>>>> origin/feature/vr-scene
 
         // Fade out the flash
         flashColor.a = 0f;

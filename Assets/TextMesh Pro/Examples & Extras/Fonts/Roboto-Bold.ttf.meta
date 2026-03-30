@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<< HEAD
-guid: a327c26aca83940a197da735610db759
-=======
 guid: 4beb055f07aaff244873dec698d0363e
->>>>>>> origin/feature/vr-scene
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -12,10 +8,7 @@ TrueTypeFontImporter:
   characterSpacing: 0
   characterPadding: 1
   includeFontData: 1
-<<<<<<< HEAD
-=======
   fontName: Roboto
->>>>>>> origin/feature/vr-scene
   fontNames:
   - Roboto
   fallbackFontReferences: []

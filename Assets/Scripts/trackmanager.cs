@@ -1,9 +1,6 @@
 using System;
 using System.Collections.Generic;
-<<<<<<< HEAD
-=======
 using System.Globalization;
->>>>>>> origin/feature/vr-scene
 using System.Linq;
 using Data;
 using UnityEngine;
@@ -30,12 +27,9 @@ namespace Data
 
         [Tooltip("Minimum number of observations required to consider a track valid")]
         public int minObservationsForValidTrack = 3;
-<<<<<<< HEAD
-=======
 
         [Tooltip("Enable verbose logging for debugging purposes")]
         public bool verboseLogging = true;
->>>>>>> origin/feature/vr-scene
         // Track observation count for validation
         private Dictionary<string, int> trackObservationCount = new Dictionary<string, int>();
 
@@ -62,26 +56,16 @@ namespace Data
             if (aisData == null || aisData.ships.Count == 0)
                 return;
 
-<<<<<<< HEAD
-            foreach (Data.Ship ship in aisData.ships)
-            {
-                ProcessShipData(ship);
-=======
             DateTime observationTimestamp = ParseObservationTimestamp(aisData.timestamp);
 
             foreach (Data.Ship ship in aisData.ships)
             {
                 ProcessShipData(ship, observationTimestamp);
->>>>>>> origin/feature/vr-scene
             }
 
         }
 
-<<<<<<< HEAD
-        public void ProcessShipData(Data.Ship ship)
-=======
         public void ProcessShipData(Data.Ship ship, DateTime observationTimestamp)
->>>>>>> origin/feature/vr-scene
         {
             // Make a track ID based on MMSI
             string trackId = $"AIS_{ship.mmsi}";
@@ -94,11 +78,7 @@ namespace Data
 
             if (activeTracks.ContainsKey(trackId))
             {
-<<<<<<< HEAD
-                UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
-=======
                 UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
->>>>>>> origin/feature/vr-scene
             }
             else
             {
@@ -116,19 +96,11 @@ namespace Data
                     activeTracks[trackId] = correlatedTrack; // Add updated track back to active tracks
                     trackObservationCount[trackId] = priorObservationCount;
 
-<<<<<<< HEAD
-                    UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
-                }
-                else
-                {
-                    CreateNewTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship);
-=======
                     UpdateExistingTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
                 }
                 else
                 {
                     CreateNewTrack(trackId, position, velocity, sensorType: SensorType.AIS, ship, observationTimestamp);
->>>>>>> origin/feature/vr-scene
                 }
             }  
         }
@@ -141,11 +113,7 @@ namespace Data
             if (correlatedTrack != null)
             {
                 // Update existing radar track directly for now (Kalman merge can replace this later).
-<<<<<<< HEAD
-                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.Radar, shipData: null);
-=======
                 UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.Radar, shipData: null, timestamp);
->>>>>>> origin/feature/vr-scene
 
                 // TODO: Merge close radar tracks 
                 //MergeTracks(correlatedTrack, position, velocity, sensorType: SensorType.Radar, shipData: null);
@@ -154,11 +122,7 @@ namespace Data
             {
                 // Create a new track with an unique ID
                 string trackId = $"Radar_{Guid.NewGuid().ToString().Substring(0, 8)}";
-<<<<<<< HEAD
-                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.Radar, shipData: null);
-=======
                 CreateNewTrack(trackId, position, velocity, sensorType: SensorType.Radar, shipData: null, timestamp);
->>>>>>> origin/feature/vr-scene
             }
         }
 
@@ -173,21 +137,13 @@ namespace Data
             if (correlatedTrack != null)
             {
                 // Merge with existing track
-<<<<<<< HEAD
-                UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.EOIR, shipData: null);
-=======
                 UpdateExistingTrack(correlatedTrack.trackid, position, velocity, sensorType: SensorType.EOIR, shipData: null, timestamp);
->>>>>>> origin/feature/vr-scene
             }
             else
             {
                 // Create a new track with an unique ID
                 string trackId = $"EOIR_{Guid.NewGuid().ToString().Substring(0, 8)}";
-<<<<<<< HEAD
-                CreateNewTrack(trackId, position, velocity, sensorType: SensorType.EOIR, shipData: null);
-=======
                 CreateNewTrack(trackId, position, velocity, sensorType: SensorType.EOIR, shipData: null, timestamp);
->>>>>>> origin/feature/vr-scene
             }
         }
 
@@ -200,11 +156,7 @@ namespace Data
         /// <param name="sensorType"></param>
         /// <param name="shipData"></param>
 
-<<<<<<< HEAD
-        private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
-=======
         private void CreateNewTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData, DateTime observationTimestamp)
->>>>>>> origin/feature/vr-scene
         {
             Track newTrack = new Track();
 
@@ -212,13 +164,10 @@ namespace Data
             newTrack.position = position;
             newTrack.velocity = velocity;
             newTrack.shipData = shipData;
-<<<<<<< HEAD
-=======
             newTrack.timeStamp = observationTimestamp;
 
             newTrack.InitializeKalmanFilter(); // Initialize Kalman filter state with first observation
             newTrack.positionUncertainty = newTrack.kalmanFilter.GetPositionUncertainty();
->>>>>>> origin/feature/vr-scene
 
             newTrack.sources.addSensor(sensorType); // Mark the source sensor
 
@@ -228,17 +177,6 @@ namespace Data
             trackObservationCount[trackid] = 1; // First observation
 
             OnTrackCreated?.Invoke(newTrack); // Trigger event for UI update
-<<<<<<< HEAD
-        }
-
-        private void UpdateExistingTrack(string trackid, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
-        {
-            Track track = activeTracks[trackid];
-
-            // Merge new data into existing track
-            MergeTracks(track, position, velocity, sensorType, shipData); // Merge new data into track
-            track.timeStamp = DateTime.UtcNow; // Update timestamp to now since we have a new observation
-=======
 
             if (verboseLogging)
             {
@@ -259,7 +197,6 @@ namespace Data
 
             // Merge new data into existing track
             MergeTracks(track, position, velocity, sensorType, shipData, observationTimestamp); // Merge new data into track
->>>>>>> origin/feature/vr-scene
 
             // Update confidence
             Data.IdentityConfidence oldConfidence = track.identityConfidence;
@@ -320,19 +257,6 @@ namespace Data
             return bestMatch;
         }
 
-<<<<<<< HEAD
-        private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData)
-        {
-            //TO DO: Going to use Kalman filtering for merging track data from multiple sensors in the future
-            // Simple averaging baseline for position and velocity.
-            track.position = (track.position + position) * 0.5f;
-            track.velocity = (track.velocity + velocity) * 0.5f;
-
-            if (!track.sources.hasSensor(sensorType))
-            {
-                track.sources.addSensor(sensorType);
-            }
-=======
         private void MergeTracks(Track track, Vector3 position, Vector3 velocity, SensorType sensorType, Ship shipData, DateTime observationTimestamp)
         {
             //TO DO: Going to use Kalman filtering for merging track data from multiple sensors in the future
@@ -393,7 +317,6 @@ namespace Data
             }
 
             return DateTime.UtcNow;
->>>>>>> origin/feature/vr-scene
         }
 
         public void RemoveInactiveTracks()
@@ -421,8 +344,6 @@ namespace Data
         public void PredictTrackPositions(float deltaTime)
         {
             // Need to implement a prediction algorithm (e.g., Kalman filter) to estimate future positions based on current velocity and heading
-<<<<<<< HEAD
-=======
             foreach (var track in activeTracks.Values)
             {
                 if (track.kalmanFilter != null)
@@ -444,7 +365,6 @@ namespace Data
                     track.state = TrackState.Predicted; // Update state to indicate this is a predicted position
                 }
             }
->>>>>>> origin/feature/vr-scene
         }
 
         public void PrintActiveTracks()
@@ -508,8 +428,6 @@ namespace Data
             return activeTracks.Count;
         }
 
-<<<<<<< HEAD
-=======
         public float GetTrackQuality(Track track)
         {
             // Get track quality score (0-1) based on uncertainty and sensor sources
@@ -531,7 +449,6 @@ namespace Data
             return (uncertaintyScore * 0.5f) + (sensorScore * 0.3f) + (stateScore * 0.2f);
         }
 
->>>>>>> origin/feature/vr-scene
         /// <summary>
         /// Utility Functions
         /// </summary>

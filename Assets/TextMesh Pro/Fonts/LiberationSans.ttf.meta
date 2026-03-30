@@ -1,41 +1,4 @@
 fileFormatVersion: 2
-<<<<<<< HEAD
-guid: 33e8541953f0c4e73961883c62fe762e
-labels:
-- Mesh
-- Text
-- Rendering
-- TextMesh
-- TextMeshPro
-- Font
-- Dynamic
-- Pro
-- Fonts
-- Advanced
-- GUI
-- Scene
-- Styles
-- Style
-- Layout
-- Atlas
-- Kerning
-TrueTypeFontImporter:
-  externalObjects: {}
-  serializedVersion: 4
-  fontSize: 16
-  forceTextureCase: -2
-  characterSpacing: 0
-  characterPadding: 1
-  includeFontData: 1
-  fontNames:
-  - Liberation Sans
-  fallbackFontReferences: []
-  customCharacters: 
-  fontRenderingMode: 0
-  ascentCalculationMode: 1
-  useLegacyBoundsCalculation: 0
-  shouldRoundAdvanceValue: 1
-=======
 guid: e3265ab4bf004d28a9537516768c1c75
 timeCreated: 1484171297
 licenseType: Pro
@@ -51,7 +14,6 @@ TrueTypeFontImporter:
   fallbackFontReferences: []
   customCharacters: 
   fontRenderingMode: 0
->>>>>>> origin/feature/vr-scene
   userData: 
   assetBundleName: 
   assetBundleVariant: 

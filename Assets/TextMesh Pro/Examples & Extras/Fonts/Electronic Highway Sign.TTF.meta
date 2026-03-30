@@ -1,9 +1,5 @@
 fileFormatVersion: 2
-<<<<<<< HEAD
-guid: 70b27b705d91347faad9fa45d087e62c
-=======
 guid: 8a2b9e2a607dd2143b58c44bc32410b4
->>>>>>> origin/feature/vr-scene
 TrueTypeFontImporter:
   externalObjects: {}
   serializedVersion: 4
@@ -12,10 +8,7 @@ TrueTypeFontImporter:
   characterSpacing: 0
   characterPadding: 1
   includeFontData: 1
-<<<<<<< HEAD
-=======
   fontName: Electronic Highway Sign
->>>>>>> origin/feature/vr-scene
   fontNames:
   - Electronic Highway Sign
   fallbackFontReferences: []

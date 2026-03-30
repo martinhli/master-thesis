@@ -1,7 +1,5 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
-<<<<<<< HEAD
-=======
 --- !u!114 &-6789792944966468325
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -19,7 +17,6 @@ MonoBehaviour:
   m_AutomaticRunning: 1
   m_Loaders:
   - {fileID: 11400000, guid: 1faec7ca2ecc447d49064957110dea5d, type: 2}
->>>>>>> origin/feature/vr-scene
 --- !u!114 &-6276292882728452334
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -34,8 +31,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.XR.Management::UnityEngine.XR.Management.XRGeneralSettings
   m_LoaderManagerInstance: {fileID: 2435606406119671357}
   m_InitManagerOnStart: 1
-<<<<<<< HEAD
-=======
 --- !u!114 &-5549255572512015468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -50,7 +45,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Unity.XR.Management::UnityEngine.XR.Management.XRGeneralSettings
   m_LoaderManagerInstance: {fileID: -6789792944966468325}
   m_InitManagerOnStart: 1
->>>>>>> origin/feature/vr-scene
 --- !u!114 &-4465541787584735732
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -81,11 +75,7 @@ MonoBehaviour:
   m_AutomaticLoading: 0
   m_AutomaticRunning: 0
   m_Loaders:
-<<<<<<< HEAD
-  - {fileID: 11400000, guid: ac50efb52545e42a896af0a8816b553a, type: 2}
-=======
   - {fileID: 11400000, guid: 1faec7ca2ecc447d49064957110dea5d, type: 2}
->>>>>>> origin/feature/vr-scene
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -98,19 +88,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d2dc886499c26824283350fa532d087d, type: 3}
   m_Name: XRGeneralSettingsPerBuildTarget
   m_EditorClassIdentifier: Unity.XR.Management.Editor::UnityEditor.XR.Management.XRGeneralSettingsPerBuildTarget
-<<<<<<< HEAD
-  Keys: 010000000d00000004000000
-=======
   Keys: 010000000d0000000400000007000000
->>>>>>> origin/feature/vr-scene
   Values:
   - {fileID: -4465541787584735732}
   - {fileID: 3809546160569260110}
   - {fileID: -6276292882728452334}
-<<<<<<< HEAD
-=======
   - {fileID: -5549255572512015468}
->>>>>>> origin/feature/vr-scene
 --- !u!114 &2435606406119671357
 MonoBehaviour:
   m_ObjectHideFlags: 0

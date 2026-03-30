@@ -4,12 +4,6 @@ using UnityEngine;
 
 public static class FFmpegNative
 {
-<<<<<<< HEAD
-    #if UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
-    const string LIB = "libffwrap.dylib";
-    #elif UNITY_STANDALONE_WIN
-    const string LIB = "ffwrap";
-=======
     #if UNITY_ANDROID
     const string LIB = "ffwrap";
     #elif UNITY_STANDALONE_OSX || UNITY_EDITOR_OSX
@@ -18,7 +12,6 @@ public static class FFmpegNative
     const string LIB = "ffwrap";
     #else
     const string LIB = "ffwrap";
->>>>>>> origin/feature/vr-scene
     #endif
 
     public enum SampleKind : int
