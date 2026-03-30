@@ -126,20 +126,24 @@ public class yolodetector : MonoBehaviour
 
     Texture2D ResizeTexture(Texture2D source, int newWidth, int newHeight)
     {
-        RenderTexture rt = RenderTexture.GetTemporary(newWidth, newHeight);
+        RenderTexture rt = new RenderTexture(newWidth, newHeight, 0, RenderTextureFormat.ARGB32);
+        rt.enableRandomWrite = false; // Explicitly disable random write for this texture
+        rt.Create();
+        
         Graphics.Blit(source, rt); // Copy the source texture to the render texture
 
         RenderTexture previous = RenderTexture.active;
         RenderTexture.active = rt;
 
         // Create a new Texture2D and read the pixels from the render texture
-        Texture2D result = new Texture2D(newWidth, newHeight);
+        Texture2D result = new Texture2D(newWidth, newHeight, TextureFormat.ARGB32, false);
         result.ReadPixels(new Rect(0, 0, newWidth, newHeight), 0, 0);
         result.Apply();
 
         // Set the active render texture back to the previous one and release the temporary render texture
         RenderTexture.active = previous;
-        RenderTexture.ReleaseTemporary(rt);
+        rt.Release();
+        Object.Destroy(rt);
 
         return result;
     }
