@@ -1,4 +1,5 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 0a2324b0da1f74e94a4e07fae18c481d
 MonoImporter:
   externalObjects: {}
@@ -9,3 +10,6 @@ MonoImporter:
   userData: 
   assetBundleName: 
   assetBundleVariant: 
+=======
+guid: 0a2324b0da1f74e94a4e07fae18c481d
+>>>>>>> origin/feature/vr-scene

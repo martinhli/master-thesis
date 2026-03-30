@@ -3,7 +3,11 @@
 --- !u!55 &1
 PhysicsManager:
   m_ObjectHideFlags: 0
+<<<<<<< HEAD
   serializedVersion: 23
+=======
+  serializedVersion: 19
+>>>>>>> origin/feature/vr-scene
   m_Gravity: {x: 0, y: -9.81, z: 0}
   m_DefaultMaterial: {fileID: 0}
   m_BounceThreshold: 2
@@ -20,16 +24,23 @@ PhysicsManager:
   m_LayerCollisionMatrix: ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
   m_SimulationMode: 0
   m_AutoSyncTransforms: 0
+<<<<<<< HEAD
   m_ReuseCollisionCallbacks: 1
+=======
+  m_ReuseCollisionCallbacks: 0
+>>>>>>> origin/feature/vr-scene
   m_InvokeCollisionCallbacks: 1
   m_ClothInterCollisionSettingsToggle: 0
   m_ClothGravity: {x: 0, y: -9.81, z: 0}
   m_ContactPairsMode: 0
   m_BroadphaseType: 0
+<<<<<<< HEAD
   m_WorldBounds:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 256, y: 256, z: 256}
   m_WorldSubdivisions: 8
+=======
+>>>>>>> origin/feature/vr-scene
   m_FrictionType: 0
   m_EnableEnhancedDeterminism: 0
   m_ImprovedPatchFriction: 0
@@ -39,7 +50,10 @@ PhysicsManager:
   m_ScratchBufferChunkCount: 4
   m_CurrentBackendId: 4072204805
   m_FastMotionThreshold: 3.4028235e+38
+<<<<<<< HEAD
   m_SceneBuffersReleaseInterval: 0
   m_ReleaseSceneBuffers: 0
   m_LogVerbosity: 3
   m_IncrementalStaticBroadphase: 1
+=======
+>>>>>>> origin/feature/vr-scene

@@ -1,5 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+<<<<<<< HEAD
 --- !u!114 &-7912412429747343832
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -368,6 +369,8 @@ MonoBehaviour:
   dirtIntensity:
     m_OverrideState: 1
     m_Value: 0
+=======
+>>>>>>> origin/feature/vr-scene
 --- !u!114 &11400000
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -380,6 +383,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d7fd9488000d3734a9e00ee676215985, type: 3}
   m_Name: DefaultVolumeProfile
   m_EditorClassIdentifier: Unity.RenderPipelines.Core.Runtime::UnityEngine.Rendering.VolumeProfile
+<<<<<<< HEAD
   components:
   - {fileID: -4148276025837107692}
   - {fileID: 1045783688538657979}
@@ -796,3 +800,6 @@ MonoBehaviour:
   blueOutBlueIn:
     m_OverrideState: 1
     m_Value: 100
+=======
+  components: []
+>>>>>>> origin/feature/vr-scene

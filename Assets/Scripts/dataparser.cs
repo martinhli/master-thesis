@@ -101,6 +101,14 @@ namespace Data
 
         public Ship shipData { get; set;}
 
+<<<<<<< HEAD
+=======
+        [NonSerialized]
+        public KalmanFilter kalmanFilter;
+
+        public float positionUncertainty { get; set;}
+
+>>>>>>> origin/feature/vr-scene
         public Track()
         {
             trackid = Guid.NewGuid().ToString();
@@ -118,6 +126,18 @@ namespace Data
             identityConfidence = newidentityConfidence;
             timeStamp = DateTime.UtcNow;
             state = newstate;
+<<<<<<< HEAD
+=======
+            positionUncertainty = 100f;
+        }
+
+        public void InitializeKalmanFilter()
+        {
+            if (kalmanFilter == null)
+            {
+                kalmanFilter = new KalmanFilter(position.x, position.z, velocity.x, velocity.z);
+            }
+>>>>>>> origin/feature/vr-scene
         }
     }
 

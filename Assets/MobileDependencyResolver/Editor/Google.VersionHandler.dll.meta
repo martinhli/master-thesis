@@ -1,4 +1,5 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 35b948c7965a94f5bbdacfeba9911580
 labels:
 - gvh
@@ -21,6 +22,36 @@ PluginImporter:
       settings:
         DefaultValueInitialized: true
     WindowsStoreApps:
+=======
+guid: 61c24b9980ea49ae90c8b62fb489de77
+labels:
+- gvh_version-1.2.185
+- gvhp_exportpath-ExternalDependencyManager/Editor/Google.VersionHandler.dll
+- gvh
+- gvhp_targets-editor
+PluginImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  iconMap: {}
+  executionOrder: {}
+  isPreloaded: 0
+  isOverridable: 0
+  platformData:
+  - first:
+      Any: 
+    second:
+      enabled: 0
+      settings: {}
+  - first:
+      Editor: Editor
+    second:
+      enabled: 1
+      settings:
+        DefaultValueInitialized: true
+  - first:
+      Windows Store Apps: WindowsStoreApps
+    second:
+>>>>>>> origin/feature/vr-scene
       enabled: 0
       settings:
         CPU: AnyCPU

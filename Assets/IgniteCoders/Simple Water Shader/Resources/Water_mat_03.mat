@@ -9,12 +9,20 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: Water_mat_03
   m_Shader: {fileID: -6465566751694194690, guid: dd97de70edf8a4141bee758a2efe7ff8, type: 3}
+<<<<<<< HEAD
   m_Parent: {fileID: 0}
+=======
+  m_Parent: {fileID: 2100000, guid: 8759ec410a6774b4ea13ae32dc2b8d2e, type: 2}
+>>>>>>> origin/feature/vr-scene
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
   m_InvalidKeywords: []
   m_LightmapFlags: 4
+<<<<<<< HEAD
   m_EnableInstancingVariants: 1
+=======
+  m_EnableInstancingVariants: 0
+>>>>>>> origin/feature/vr-scene
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
@@ -23,6 +31,7 @@ Material:
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
+<<<<<<< HEAD
     m_TexEnvs:
     - Texture2D_28de85506601443d82b6148f21ccc69c:
         m_Texture: {fileID: 8400000, guid: 4ae8ae7350b67b44785d874c413a2e03, type: 2}
@@ -57,20 +66,33 @@ Material:
     - Boolean_d3c978b0d14a4f66be175a9b89855be0: 0
     - Vector1_55003dfa023448c3bffa42f3ca4a99a4: -0.08
     - Vector1_6269b1025b26473ca8bc61634f34b537: 1
+=======
+    m_TexEnvs: []
+    m_Ints: []
+    m_Floats:
+    - Vector1_55003dfa023448c3bffa42f3ca4a99a4: -0.08
+>>>>>>> origin/feature/vr-scene
     - Vector1_687f54e8c371429f86b9eaab0e7dfe3e: 0.5
     - Vector1_6c82dffdd68049bcb019d3a9c64c92a0: 0.1
     - Vector1_6f56a0970372485390c6587863c2374e: -2
     - Vector1_7273530c27a34c9f8ee5723b84f96baa: 0.5
+<<<<<<< HEAD
     - Vector1_dada42ebfac44076897b6de67441ba32: 0.3
     - _QueueControl: 0
     - _QueueOffset: 0
+=======
+>>>>>>> origin/feature/vr-scene
     m_Colors:
     - Color_36218622185947c6a5ae36366d8e21d8: {r: 0.18801177, g: 0.55574864, b: 0.6132076, a: 0.9607843}
     - Color_93e06cd551a5449091bcde90b46765a0: {r: 0.1702118, g: 0.7075472, b: 0.6965743, a: 0.19607843}
     - Vector2_4351ac2be1d74054986ec5378db9d578: {r: 5, g: 5, b: 0, a: 0}
   m_BuildTextureStacks: []
   m_AllowLocking: 1
+<<<<<<< HEAD
 --- !u!114 &2796907904111180929
+=======
+--- !u!114 &3427564070382214820
+>>>>>>> origin/feature/vr-scene
 MonoBehaviour:
   m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}

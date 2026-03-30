@@ -48,7 +48,11 @@ QualitySettings:
     asyncUploadBufferSize: 16
     asyncUploadPersistentBuffer: 1
     resolutionScalingFixedDPIFactor: 1
+<<<<<<< HEAD
     customRenderPipeline: {fileID: 11400000, guid: bc5d3c58fbc02458c878b9aec8c19bfc, type: 2}
+=======
+    customRenderPipeline: {fileID: 11400000, guid: 693ac79727e434101bcb5537657f3b3c, type: 2}
+>>>>>>> origin/feature/vr-scene
     terrainQualityOverrides: 0
     terrainPixelError: 1
     terrainDetailDensityScale: 1
@@ -260,7 +264,11 @@ QualitySettings:
     asyncUploadBufferSize: 16
     asyncUploadPersistentBuffer: 1
     resolutionScalingFixedDPIFactor: 1
+<<<<<<< HEAD
     customRenderPipeline: {fileID: 11400000, guid: e5708dfba4bd74410b13db75daef0965, type: 2}
+=======
+    customRenderPipeline: {fileID: 11400000, guid: 3f42b2fbc99764a7da069b2dfb3408cd, type: 2}
+>>>>>>> origin/feature/vr-scene
     terrainQualityOverrides: 0
     terrainPixelError: 1
     terrainDetailDensityScale: 1
@@ -313,7 +321,11 @@ QualitySettings:
     asyncUploadBufferSize: 16
     asyncUploadPersistentBuffer: 1
     resolutionScalingFixedDPIFactor: 1
+<<<<<<< HEAD
     customRenderPipeline: {fileID: 11400000, guid: 7ede63d5f4fd74f27b7c1ed61dc72ccc, type: 2}
+=======
+    customRenderPipeline: {fileID: 11400000, guid: a60abbb7d000f4ad0988a228da637c0d, type: 2}
+>>>>>>> origin/feature/vr-scene
     terrainQualityOverrides: 0
     terrainPixelError: 1
     terrainDetailDensityScale: 1

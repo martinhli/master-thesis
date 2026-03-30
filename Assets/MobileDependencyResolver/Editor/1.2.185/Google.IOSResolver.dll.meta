@@ -1,7 +1,16 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: ec2f153f87d1046a696976b56359918c
 labels:
 - gvh
+=======
+guid: a1a3cd348b3c4bbc82b68b73893f222a
+labels:
+- gvh_version-1.2.185
+- gvhp_exportpath-ExternalDependencyManager/Editor/1.2.185/Google.IOSResolver.dll
+- gvh
+- gvhp_targets-editor
+>>>>>>> origin/feature/vr-scene
 PluginImporter:
   externalObjects: {}
   serializedVersion: 3
@@ -11,7 +20,11 @@ PluginImporter:
   isPreloaded: 0
   isOverridable: 0
   isExplicitlyReferenced: 0
+<<<<<<< HEAD
   validateReferences: 1
+=======
+  validateReferences: 0
+>>>>>>> origin/feature/vr-scene
   platformData:
     Any:
       enabled: 0

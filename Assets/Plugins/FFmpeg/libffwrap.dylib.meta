@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: f36371abd432641beba1fe72e074ce14
+=======
+guid: 0f391b7885d6447b987adbe4f4771a60
+>>>>>>> origin/feature/vr-scene
 PluginImporter:
   externalObjects: {}
   serializedVersion: 3
@@ -13,7 +17,46 @@ PluginImporter:
   platformData:
     Any:
       enabled: 1
+<<<<<<< HEAD
       settings: {}
+=======
+      settings:
+        Exclude Editor: 0
+        Exclude Linux64: 1
+        Exclude OSXUniversal: 0
+        Exclude Win: 1
+        Exclude Win64: 1
+        Exclude iOS: 1
+    Editor:
+      enabled: 1
+      settings:
+        CPU: ARM64
+        DefaultValueInitialized: true
+        OS: OSX
+    Linux64:
+      enabled: 0
+      settings:
+        CPU: x86_64
+    OSXUniversal:
+      enabled: 1
+      settings:
+        CPU: ARM64
+    Win:
+      enabled: 0
+      settings:
+        CPU: x86
+    Win64:
+      enabled: 0
+      settings:
+        CPU: None
+    iOS:
+      enabled: 0
+      settings:
+        AddToEmbeddedBinaries: false
+        CPU: AnyCPU
+        CompileFlags: 
+        FrameworkDependencies: 
+>>>>>>> origin/feature/vr-scene
   userData: 
   assetBundleName: 
   assetBundleVariant: 

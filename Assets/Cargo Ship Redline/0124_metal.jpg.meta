@@ -1,5 +1,9 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: bff5255e1bc834f7491fa77222be3a2d
+=======
+guid: 442e9534881ef4610bd5c9a975325454
+>>>>>>> origin/feature/vr-scene
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}

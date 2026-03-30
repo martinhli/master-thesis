@@ -1,4 +1,9 @@
 ﻿<Solution>
   <Project Path="Assembly-CSharp.csproj" />
+<<<<<<< HEAD
+=======
+  <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.csproj" />
+  <Project Path="Unity.XR.Interaction.Toolkit.Samples.StarterAssets.Editor.csproj" />
+>>>>>>> origin/feature/vr-scene
   <Project Path="Assembly-CSharp-Editor.csproj" />
 </Solution>

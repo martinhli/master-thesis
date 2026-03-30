@@ -1,7 +1,16 @@
 fileFormatVersion: 2
+<<<<<<< HEAD
 guid: 16999f3543ce344d9980bc4a09c00d91
 labels:
 - gvh
+=======
+guid: 459f2b4255ec498caed1c0aeb1bf03a0
+labels:
+- gvh_version-1.2.185
+- gvhp_exportpath-ExternalDependencyManager/Editor/1.2.185/Google.JarResolver.dll
+- gvh
+- gvhp_targets-editor
+>>>>>>> origin/feature/vr-scene
 PluginImporter:
   externalObjects: {}
   serializedVersion: 3
