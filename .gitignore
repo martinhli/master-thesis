@@ -60,3 +60,4 @@ mono_crash*
 
 # Android build artifacts
 *.apk
+.DS_Store
