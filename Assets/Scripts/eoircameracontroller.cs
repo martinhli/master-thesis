@@ -11,6 +11,7 @@ using TMPro;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
+using System.Diagnostics;
 public class EOIRCameraController : MonoBehaviour
 {
     [Header("Camera Settings")]
@@ -159,6 +160,7 @@ public class EOIRCameraController : MonoBehaviour
     private InputDevice rightController;
     private bool previousAButtonState;
     private bool previousBButtonState;
+    private bool rightControllerActive;
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -405,17 +407,47 @@ public class EOIRCameraController : MonoBehaviour
             return true;
         }
 
+        // Preferred lookup for hand-specific devices.
+        rightController = InputDevices.GetDeviceAtXRNode(XRNode.RightHand);
+        if (rightController.isValid)
+        {
+            previousAButtonState = false;
+            previousBButtonState = false;
+            rightControllerActive = true;
+            return true;
+        }
+
         List<InputDevice> devices = new List<InputDevice>();
+
+        // Some runtimes do not expose HeldInHand, so try multiple characteristic sets.
         InputDevices.GetDevicesWithCharacteristics(
             InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.HeldInHand | InputDeviceCharacteristics.Right,
             devices);
 
         if (devices.Count == 0)
         {
+            InputDevices.GetDevicesWithCharacteristics(
+                InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Right,
+                devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Right, devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            if (!rightControllerActive)
+            {
+                Debug.LogWarning("[EO/IR] No righthand controller found for EO/IR input!");
+                rightControllerActive = false;
+            }
             return false;
         }
 
         rightController = devices[0];
+        rightControllerActive = true;
         previousAButtonState = false;
         previousBButtonState = false;
         return rightController.isValid;
