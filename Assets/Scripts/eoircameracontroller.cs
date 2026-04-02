@@ -11,6 +11,7 @@ using TMPro;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
+using Debug = UnityEngine.Debug;
 using System.Diagnostics;
 public class EOIRCameraController : MonoBehaviour
 {
