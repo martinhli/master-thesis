@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Text;
 using Data;
 using UnityEngine.XR;
 
@@ -96,6 +99,40 @@ public class EOIRCameraController : MonoBehaviour
     [Tooltip("Spherecast target object")]
     public GameObject sphereCastTarget;
 
+    [Header("YOLO Training Capture")]
+
+    [Tooltip("Save each capture as YOLO training data (image + .txt labels)")]
+    public bool saveYoloTrainingSamples = false;
+
+    [Tooltip("Folder name under Application.persistentDataPath used for YOLO dataset export")]
+    public string yoloDatasetFolderName = "yolo_dataset";
+
+    [Tooltip("Store JPG images (true) or PNG images (false)")]
+    public bool exportJpg = true;
+
+    [Tooltip("JPG quality used when exportJpg is enabled")]
+    [Range(1, 100)]
+    public int jpgQuality = 95;
+
+    [Tooltip("When false, captures with no visible ship labels are skipped")]
+    public bool includeNegativeSamples = true;
+
+    [Tooltip("Use one YOLO class (ship=0) instead of classes per SimulatedShip.shipType")]
+    public bool useSingleShipClass = true;
+
+    [Tooltip("Minimum normalized box size to include as label")]
+    [Range(0.0001f, 0.1f)]
+    public float minNormalizedBoxSize = 0.005f;
+
+    /// <summary>
+    /// YOLO dataset export paths and state
+    /// </summary>
+    private string yoloDatasetRootPath;
+    private string yoloImagesPath;
+    private string yoloLabelsPath;
+    private int yoloSampleCounter;
+    private bool yoloDatasetReady;
+
     [Header("Input Settings")]
 
     [Tooltip("Input key to capture camera control input")]
@@ -147,6 +184,11 @@ public class EOIRCameraController : MonoBehaviour
         ApplyCameraRotation();
 
         UpdateStatusText("[EO/IR] EO/IR Camera Ready");
+
+        if (saveYoloTrainingSamples)
+        {
+            EnsureYoloDatasetFolders();
+        }
 
         TryInitializeRightController();
     }
@@ -479,6 +521,7 @@ public class EOIRCameraController : MonoBehaviour
 
         SimulatedShip detectedShip = null;
         bool contactConfirmed = false;
+        Texture2D capturedFrame = null;
 
         bool tryPhysicsFirst = useRaycastDetection && (usePhysicsDetection || !useYOLODetection || yoloDetector == null);
         if (tryPhysicsFirst)
@@ -487,53 +530,49 @@ public class EOIRCameraController : MonoBehaviour
             contactConfirmed = (detectedShip != null);
         }
 
-        if (!contactConfirmed && useYOLODetection && yoloDetector != null)
+        bool yoloRequested = !contactConfirmed && useYOLODetection && yoloDetector != null;
+        bool trainingExportRequested = saveYoloTrainingSamples;
+        if (yoloRequested || trainingExportRequested)
         {
-            Texture2D capturedFrame = CaptureCameraFrame();
-            try
+            capturedFrame = CaptureCameraFrame();
+        }
+
+        if (yoloRequested)
+        {
+            yolodetector.Detection bestDetection;
+            bool yoloFoundShip = yoloDetector.TryGetBestShipDetection(capturedFrame, out bestDetection);
+
+            if (yoloFoundShip)
             {
-                yolodetector.Detection bestDetection;
-                bool yoloFoundShip = yoloDetector.TryGetBestShipDetection(capturedFrame, out bestDetection);
+                detectedShip = requireRaycastHitForYOLOConfirmation ? RaycastDetectShip() : GetShipInView();
+                contactConfirmed = detectedShip != null;
 
-                if (yoloFoundShip)
+                if (contactConfirmed && requireExpectedContactMatch && expectedUnknownContact != null)
                 {
-                    detectedShip = requireRaycastHitForYOLOConfirmation ? RaycastDetectShip() : GetShipInView();
-                    contactConfirmed = detectedShip != null;
+                    contactConfirmed = detectedShip == expectedUnknownContact;
+                    if (!contactConfirmed)
+                    {
+                        UpdateStatusText("Contact rejected: captured vessel does not match the unknown contact label.");
+                    }
+                }
 
-                    if (contactConfirmed && requireExpectedContactMatch && expectedUnknownContact != null)
-                    {
-                        contactConfirmed = detectedShip == expectedUnknownContact;
-                        if (!contactConfirmed)
-                        {
-                            UpdateStatusText("Contact rejected: captured vessel does not match the unknown contact label.");
-                        }
-                    }
-
-                    if (contactConfirmed)
-                    {
-                        UpdateStatusText($"Contact confirmed ({bestDetection.confidence:P0})");
-                    }
-                    else
-                    {
-                        UpdateStatusText("YOLO detected vessel but contact was not centered. Rejected.");
-                    }
+                if (contactConfirmed)
+                {
+                    UpdateStatusText($"Contact confirmed ({bestDetection.confidence:P0})");
                 }
                 else
                 {
-                    UpdateStatusText("Contact rejected: YOLO found no vessel in capture.");
-
-                    if (useRaycastDetection && !tryPhysicsFirst)
-                    {
-                        detectedShip = RaycastDetectShip();
-                        contactConfirmed = (detectedShip != null);
-                    }
+                    UpdateStatusText("YOLO detected vessel but contact was not centered. Rejected.");
                 }
             }
-            finally
+            else
             {
-                if (capturedFrame != null)
+                UpdateStatusText("Contact rejected: YOLO found no vessel in capture.");
+
+                if (useRaycastDetection && !tryPhysicsFirst)
                 {
-                    Destroy(capturedFrame);
+                    detectedShip = RaycastDetectShip();
+                    contactConfirmed = (detectedShip != null);
                 }
             }
         }
@@ -552,6 +591,230 @@ public class EOIRCameraController : MonoBehaviour
         {
             HandleDetectionFailure();
         }
+
+        if (saveYoloTrainingSamples && capturedFrame != null)
+        {
+            SaveYoloTrainingSample(capturedFrame);
+        }
+
+        if (capturedFrame != null)
+        {
+            Destroy(capturedFrame);
+        }
+    }
+
+    private void EnsureYoloDatasetFolders()
+    {
+        if (yoloDatasetReady)
+        {
+            return;
+        }
+
+        yoloDatasetRootPath = Path.Combine(Application.persistentDataPath, yoloDatasetFolderName);
+        yoloImagesPath = Path.Combine(yoloDatasetRootPath, "images");
+        yoloLabelsPath = Path.Combine(yoloDatasetRootPath, "labels");
+
+        Directory.CreateDirectory(yoloDatasetRootPath);
+        Directory.CreateDirectory(yoloImagesPath);
+        Directory.CreateDirectory(yoloLabelsPath);
+
+        WriteYoloClassesFile();
+
+        yoloSampleCounter = Directory.GetFiles(yoloImagesPath).Length;
+        yoloDatasetReady = true;
+
+        Debug.Log($"[EO/IR] YOLO export ready at: {yoloDatasetRootPath}");
+    }
+
+    private void WriteYoloClassesFile()
+    {
+        string classesPath = Path.Combine(yoloDatasetRootPath, "classes.txt");
+        if (useSingleShipClass)
+        {
+            File.WriteAllLines(classesPath, new[] { "ship" }, Encoding.UTF8);
+            return;
+        }
+
+        SimulatedShip.ShipType[] shipTypes = (SimulatedShip.ShipType[])System.Enum.GetValues(typeof(SimulatedShip.ShipType));
+        string[] classNames = new string[shipTypes.Length];
+        for (int i = 0; i < shipTypes.Length; i++)
+        {
+            classNames[i] = shipTypes[i].ToString().ToLowerInvariant();
+        }
+
+        File.WriteAllLines(classesPath, classNames, Encoding.UTF8);
+    }
+
+    private void SaveYoloTrainingSample(Texture2D frame)
+    {
+        if (frame == null)
+        {
+            return;
+        }
+
+        EnsureYoloDatasetFolders();
+
+        List<string> yoloLabels = BuildYoloLabelLines();
+        if (!includeNegativeSamples && yoloLabels.Count == 0)
+        {
+            return;
+        }
+
+        string sampleName = $"capture_{System.DateTime.UtcNow:yyyyMMdd_HHmmss}_{yoloSampleCounter:D6}";
+        string imageExtension = exportJpg ? ".jpg" : ".png";
+        string imagePath = Path.Combine(yoloImagesPath, sampleName + imageExtension);
+        string labelPath = Path.Combine(yoloLabelsPath, sampleName + ".txt");
+
+        byte[] imageBytes = exportJpg ? frame.EncodeToJPG(jpgQuality) : frame.EncodeToPNG();
+        File.WriteAllBytes(imagePath, imageBytes);
+        File.WriteAllLines(labelPath, yoloLabels, Encoding.UTF8);
+
+        yoloSampleCounter++;
+        Debug.Log($"[EO/IR] YOLO sample saved: {sampleName} ({yoloLabels.Count} labels)");
+    }
+
+    private List<string> BuildYoloLabelLines()
+    {
+        List<string> labels = new List<string>();
+        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+
+        for (int i = 0; i < ships.Length; i++)
+        {
+            SimulatedShip ship = ships[i];
+            if (ship == null)
+            {
+                continue;
+            }
+
+            Rect viewportBounds;
+            if (!TryGetShipViewportRect(ship, out viewportBounds))
+            {
+                continue;
+            }
+
+            float width = viewportBounds.width;
+            float height = viewportBounds.height;
+            if (width < minNormalizedBoxSize || height < minNormalizedBoxSize)
+            {
+                continue;
+            }
+
+            float centerX = viewportBounds.x + width * 0.5f;
+            float centerY = viewportBounds.y + height * 0.5f;
+            int classId = GetYoloClassId(ship);
+
+            string line = string.Format(CultureInfo.InvariantCulture, "{0} {1:F6} {2:F6} {3:F6} {4:F6}", classId, centerX, centerY, width, height);
+            labels.Add(line);
+        }
+
+        return labels;
+    }
+
+    private int GetYoloClassId(SimulatedShip ship)
+    {
+        if (useSingleShipClass || ship == null)
+        {
+            return 0;
+        }
+
+        return Mathf.Max(0, (int)ship.shipType);
+    }
+
+    private bool TryGetShipViewportRect(SimulatedShip ship, out Rect viewportRect)
+    {
+        viewportRect = new Rect();
+        if (ship == null || eoirCamera == null)
+        {
+            return false;
+        }
+
+        Bounds bounds;
+        if (!TryGetShipBounds(ship, out bounds))
+        {
+            return false;
+        }
+
+        Vector3[] corners = new Vector3[8];
+        Vector3 min = bounds.min;
+        Vector3 max = bounds.max;
+
+        corners[0] = new Vector3(min.x, min.y, min.z);
+        corners[1] = new Vector3(min.x, min.y, max.z);
+        corners[2] = new Vector3(min.x, max.y, min.z);
+        corners[3] = new Vector3(min.x, max.y, max.z);
+        corners[4] = new Vector3(max.x, min.y, min.z);
+        corners[5] = new Vector3(max.x, min.y, max.z);
+        corners[6] = new Vector3(max.x, max.y, min.z);
+        corners[7] = new Vector3(max.x, max.y, max.z);
+
+        float minX = 1f;
+        float maxX = 0f;
+        float minY = 1f;
+        float maxY = 0f;
+        bool hasVisiblePoint = false;
+
+        for (int i = 0; i < corners.Length; i++)
+        {
+            Vector3 vp = eoirCamera.WorldToViewportPoint(corners[i]);
+            if (vp.z <= 0f)
+            {
+                continue;
+            }
+
+            hasVisiblePoint = true;
+            minX = Mathf.Min(minX, vp.x);
+            maxX = Mathf.Max(maxX, vp.x);
+            minY = Mathf.Min(minY, vp.y);
+            maxY = Mathf.Max(maxY, vp.y);
+        }
+
+        if (!hasVisiblePoint)
+        {
+            return false;
+        }
+
+        minX = Mathf.Clamp01(minX);
+        maxX = Mathf.Clamp01(maxX);
+        minY = Mathf.Clamp01(minY);
+        maxY = Mathf.Clamp01(maxY);
+
+        float width = maxX - minX;
+        float height = maxY - minY;
+        if (width <= 0f || height <= 0f)
+        {
+            return false;
+        }
+
+        viewportRect = new Rect(minX, minY, width, height);
+        return true;
+    }
+
+    private bool TryGetShipBounds(SimulatedShip ship, out Bounds bounds)
+    {
+        Collider[] colliders = ship.GetComponentsInChildren<Collider>();
+        bool initialized = false;
+        bounds = new Bounds(ship.transform.position, Vector3.zero);
+
+        for (int i = 0; i < colliders.Length; i++)
+        {
+            Collider col = colliders[i];
+            if (col == null || !col.enabled || !col.gameObject.activeInHierarchy)
+            {
+                continue;
+            }
+
+            if (!initialized)
+            {
+                bounds = col.bounds;
+                initialized = true;
+            }
+            else
+            {
+                bounds.Encapsulate(col.bounds);
+            }
+        }
+
+        return initialized;
     }
 
     private Texture2D CaptureCameraFrame()
