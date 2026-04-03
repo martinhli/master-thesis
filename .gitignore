@@ -59,6 +59,9 @@ Assets/_Recovery.meta
 mono_crash*
 *.blob
 
+# Unity Burst generated debug artifacts
+*_BurstDebugInformation_DoNotShip/
+
 # Android build artifacts
 *.apk
 .DS_Store
