@@ -951,7 +951,7 @@ GameObject:
   - component: {fileID: 465494011}
   - component: {fileID: 465494013}
   m_Layer: 0
-  m_Name: Directional Light
+  m_Name: Outdoor Light
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1688,7 +1688,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::AISOverlay
   trackManager: {fileID: 118463707}
-  labelPrefab: {fileID: 1549653684184420956, guid: d4c65620a95a6478582c5b6b9df1b1d2, type: 3}
+  labelPrefab: {fileID: 1549653684184420956, guid: 47346213aa14c4e7da02269c2a21548e, type: 3}
   overlayCamera: {fileID: 1186557780}
 --- !u!4 &857207534
 Transform:
@@ -2535,7 +2535,7 @@ MonoBehaviour:
   shipName: MV Other
   mmsi: 257081693
   imo: IMO0307865
-  shipType: 0
+  shipType: 5
   aisTransponder: 1
   radarCrossSection: 1
   aisRange: 5000
@@ -2706,10 +2706,10 @@ MonoBehaviour:
   - {fileID: 0}
   - {fileID: 0}
   - {fileID: 0}
-  aisUpdateInterval: 2
+  aisUpdateInterval: 4
   aisRange: 50000
   aisPositionError: 10
-  radarUpdateInterval: 4
+  radarUpdateInterval: 2
   radarRange: 45000
   radarPositionError: 30
   radarAzimuthCoverage: 360
@@ -2855,6 +2855,65 @@ MonoBehaviour:
   timeText: {fileID: 1787253598}
   showOverlay: 1
   cameraMode: EO/IR
+--- !u!1 &1426498678
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1426498680}
+  - component: {fileID: 1426498679}
+  m_Layer: 0
+  m_Name: EOIR Footprint Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1426498679
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426498678}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 955c4508b87e94baf9313560e6930d84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::EOIRFootprintTracker
+  eoirCamera: {fileID: 1638079333}
+  mapCenter: {fileID: 64213244}
+  seaLevelY: 0
+  mapSizeMeters: 20000
+  resolution: 256
+  updateInterval: 0.25
+  unsearched:
+    serializedVersion: 2
+    rgba: 3021870090
+  searched:
+    serializedVersion: 2
+    rgba: 3697571880
+  current:
+    serializedVersion: 2
+    rgba: 4294960730
+--- !u!4 &1426498680
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1426498678}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &1503100953
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2965,7 +3024,7 @@ MonoBehaviour:
   autopilotSpeed: 10
   autopilotCourse: 0
   turnResponsiveness: 2
-  yawOffsetDegrees: 90
+  yawOffsetDegrees: 0
   disableGravity: 1
   freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
@@ -3228,6 +3287,13 @@ MonoBehaviour:
   viewportFallbackCenterTolerance: 0.12
   physicsHitSelectionTolerance: 0.18
   sphereCastTarget: {fileID: 0}
+  saveYoloTrainingSamples: 0
+  yoloDatasetFolderName: yolo_dataset
+  exportJpg: 1
+  jpgQuality: 95
+  includeNegativeSamples: 1
+  useSingleShipClass: 1
+  minNormalizedBoxSize: 0.005
   captureInputKey: 32
   useVRControllerInput: 0
   rightStickDeadzone: 0.2
@@ -4065,6 +4131,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1935654141}
   - component: {fileID: 1935654140}
+  - component: {fileID: 1935654142}
   m_Layer: 0
   m_Name: XR Origin
   m_TagString: Untagged
@@ -4105,6 +4172,20 @@ Transform:
   - {fileID: 653849279}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!114 &1935654142
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1935654137}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd45767f494ac4f71ad651f2a2c8fc1f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::XROriginPlayMode
+  fallbackEyeHeight: 1.1176
+  disableTrackedPoseDriverWhenNoXR: 1
 --- !u!1001 &1983559118
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4147,11 +4228,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
       propertyPath: m_LocalRotation.y
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
       propertyPath: m_LocalRotation.z
-      value: -0
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: e03cbb107a2c04a51bdc9710167ea2fc, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
@@ -4236,7 +4317,7 @@ MonoBehaviour:
   autopilotSpeed: 5
   autopilotCourse: 0
   turnResponsiveness: 2
-  yawOffsetDegrees: 90
+  yawOffsetDegrees: 0
   disableGravity: 1
   freezeRollAndPitch: 1
   shipColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
@@ -4692,3 +4773,4 @@ SceneRoots:
   - {fileID: 1216706051}
   - {fileID: 673619291}
   - {fileID: 1383963623}
+  - {fileID: 1426498680}
