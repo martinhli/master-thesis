@@ -1,220 +1,184 @@
 using UnityEngine;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Diagnostics;
+using System.Drawing;
 
+using Debug = UnityEngine.Debug;
+using Color = UnityEngine.Color;
+using Vector3 = UnityEngine.Vector3;
+using Quaternion = UnityEngine.Quaternion;
 public class EOIRFootprintTracker : MonoBehaviour
 {
     [Header("References")]
     public Camera eoirCamera;
-    public Transform mapCenter;
+    public Transform aircraftTransform;
 
-    [Header("Map Settings")]
-    public float seaLevelY = 0f;
-    public float mapSizeMeters = 20000f;
-    public int resolution = 256;
-    public float updateInterval = 0.25f;
+    [Header("Footprint Settings")]
+    public int maxFootprints = 50;
+    public float footprintInterval = 1f; // Time in seconds between footprint updates
+    public float footprintLifetime = 60f; // Fade after this many seconds
+    public float maxDistance = 50000f; // Max distance from aircraft to place footprints (in meters)
 
-    [Header("Colors")]
-    public Color32 unsearched = new Color32(10, 20, 30, 180);
-    public Color32 searched = new Color32(40, 120, 100, 220);
-    public Color32 current = new Color32(90, 230, 255, 255);
+    [Header("Visualization Settings")]
+    public GameObject footprintPrefab;
+    public Color recentColor = new Color(0, 1, 1, 0.8f); // Bright cyan
+    public Color oldColor = new Color(0, 0.5f, 0.5f, 0.2f); // Faded cyan
+    public float footprintSize = 100f; // Meters covered by each footprint
+    public float heightOffset = 10f; // Height above sea level to place footprints
 
-    public Texture2D CoverageTexture => _texture;
+    [System.Serializable]
+    public class Footprint
+    {
+        public Vector3 position;
+        public float timestamp;
+        public GameObject visualObject;
+    }
 
-    private Texture2D _texture;
-    private Color32[] _historyPixels;
-    private Color32[] _framePixels;
-    private float _nextTick;
+    private Queue<Footprint> footprints = new Queue<Footprint>(); // Using queue to process fooprints in order they arrived
+    private float lastFootprintTime;
+    private Material footprintMaterial;
 
     void Start()
     {
-        if (resolution < 16)
-        {
-            resolution = 16;
-        }
-
-        _texture = new Texture2D(resolution, resolution, TextureFormat.RGBA32, false);
-        _texture.wrapMode = TextureWrapMode.Clamp;
-        _texture.filterMode = FilterMode.Bilinear;
-
-        _historyPixels = new Color32[resolution * resolution];
-        _framePixels = new Color32[resolution * resolution];
-        for (int i = 0; i < _historyPixels.Length; i++)
-        {
-            _historyPixels[i] = unsearched;
-            _framePixels[i] = unsearched;
-        }
-
-        _texture.SetPixels32(_framePixels);
-        _texture.Apply(false, false);
+        // Need to implement a custom shader that can handle fading over time, or use a simple material with color property we can modify
+        CreateFootprintMaterial();
     }
 
     void Update()
     {
-        if (eoirCamera == null || mapCenter == null)
+        // Add new footprints
+        if (Time.time - lastFootprintTime >= footprintInterval)
         {
-            return;
+            AddFootprint();
+            lastFootprintTime = Time.time;
         }
 
-        if (Time.time < _nextTick)
-        {
-            return;
-        }
-        _nextTick = Time.time + Mathf.Max(0.02f, updateInterval);
-
-        Vector2 uv0;
-        Vector2 uv1;
-        Vector2 uv2;
-        Vector2 uv3;
-        if (!TryGetFootprintUV(out uv0, out uv1, out uv2, out uv3))
-        {
-            ComposeAndUpload(false, Vector2.zero, Vector2.zero, Vector2.zero, Vector2.zero);
-            return;
-        }
-
-        FillQuad(_historyPixels, uv0, uv1, uv2, uv3, searched);
-        ComposeAndUpload(true, uv0, uv1, uv2, uv3);
+        // Update existing footprints
+        UpdateFootprints();
     }
 
-    public void ResetCoverage()
+    void CreateFootprintMaterial()
     {
-        if (_historyPixels == null)
-        {
-            return;
-        }
-
-        for (int i = 0; i < _historyPixels.Length; i++)
-        {
-            _historyPixels[i] = unsearched;
-            _framePixels[i] = unsearched;
-        }
-
-        _texture.SetPixels32(_framePixels);
-        _texture.Apply(false, false);
+        // Create transparent material for footprints
+        footprintMaterial = new Material(Shader.Find("Unlit/Transparent"));
+        footprintMaterial.color = recentColor;
+        footprintMaterial.renderQueue = 3000; // Ensure it renders on top of most geometry
     }
 
-    bool TryGetFootprintUV(out Vector2 uv0, out Vector2 uv1, out Vector2 uv2, out Vector2 uv3)
+    void AddFootprint()
     {
-        uv0 = Vector2.zero;
-        uv1 = Vector2.zero;
-        uv2 = Vector2.zero;
-        uv3 = Vector2.zero;
+        if (eoirCamera == null) return;
 
-        Vector3 w0;
-        Vector3 w1;
-        Vector3 w2;
-        Vector3 w3;
-        if (!TryGetFootprintWorld(out w0, out w1, out w2, out w3))
+        // Raycast from camera to find where the footprint should be placed
+        RaycastHit hit;
+        if (Physics.Raycast(
+            eoirCamera.transform.position,
+            eoirCamera.transform.forward,
+            out hit,
+            maxDistance))
         {
-            return false;
-        }
-
-        uv0 = WorldToUV(w0);
-        uv1 = WorldToUV(w1);
-        uv2 = WorldToUV(w2);
-        uv3 = WorldToUV(w3);
-        return true;
-    }
-
-    bool TryGetFootprintWorld(out Vector3 p0, out Vector3 p1, out Vector3 p2, out Vector3 p3)
-    {
-        p0 = Vector3.zero;
-        p1 = Vector3.zero;
-        p2 = Vector3.zero;
-        p3 = Vector3.zero;
-
-        Vector2[] corners = new Vector2[4]
-        {
-            new Vector2(0f, 0f),
-            new Vector2(1f, 0f),
-            new Vector2(1f, 1f),
-            new Vector2(0f, 1f)
-        };
-
-        Vector3[] points = new Vector3[4];
-        for (int i = 0; i < 4; i++)
-        {
-            Ray ray = eoirCamera.ViewportPointToRay(new Vector3(corners[i].x, corners[i].y, 0f));
-            float denom = ray.direction.y;
-            if (Mathf.Abs(denom) < 0.00001f)
+            // Create new fooprint at hit location
+            Footprint footprint = new Footprint
             {
-                return false;
+                position = hit.point + Vector3.up * heightOffset,
+                timestamp = Time.time,
+                visualObject = CreateFootprintVisual(hit.point + Vector3.up * heightOffset)
+            };
+            footprints.Enqueue(footprint);
+
+            // Remove old footprints
+            while (footprints.Count > maxFootprints)
+            {
+                // Need a function to remove the oldest footprint's visual object and then dequeue it
+                RemoveFootprint();
             }
 
-            float t = (seaLevelY - ray.origin.y) / denom;
-            if (t <= 0f)
+            Debug.Log($"[EOIRFootprintTracker] Added footprint at {hit.point}, total footprints: {footprints.Count}");
+        }
+    }
+
+    void RemoveFootprint()
+    {
+        if (footprints.Count > 0)
+        {
+            Footprint oldestFootprint = footprints.Dequeue();
+            if (oldestFootprint.visualObject != null)
             {
-                return false;
+                Destroy(oldestFootprint.visualObject);
+            }
+        }
+    }
+
+    void UpdateFootprints()
+    {
+        for (int i = footprints.Count - 1; i >= 0; i--)
+        {
+            Footprint footprint = footprints.ToArray()[i];;
+            float age = Time.time - footprint.timestamp;
+
+            // Remove if too old
+            if (age >= footprintLifetime)
+            {
+                RemoveFootprint();
+                continue;
             }
 
-            points[i] = ray.origin + ray.direction * t;
-        }
-
-        p0 = points[0];
-        p1 = points[1];
-        p2 = points[2];
-        p3 = points[3];
-        return true;
-    }
-
-    Vector2 WorldToUV(Vector3 worldPoint)
-    {
-        float half = mapSizeMeters * 0.5f;
-        Vector3 rel = worldPoint - mapCenter.position;
-        float u = Mathf.Clamp01((rel.x + half) / mapSizeMeters);
-        float v = Mathf.Clamp01((rel.z + half) / mapSizeMeters);
-        return new Vector2(u, v);
-    }
-
-    void ComposeAndUpload(bool drawCurrent, Vector2 a, Vector2 b, Vector2 c, Vector2 d)
-    {
-        System.Array.Copy(_historyPixels, _framePixels, _historyPixels.Length);
-        if (drawCurrent)
-        {
-            FillQuad(_framePixels, a, b, c, d, current);
-        }
-
-        _texture.SetPixels32(_framePixels);
-        _texture.Apply(false, false);
-    }
-
-    void FillQuad(Color32[] pixels, Vector2 a, Vector2 b, Vector2 c, Vector2 d, Color32 color)
-    {
-        FillTriangle(pixels, a, b, c, color);
-        FillTriangle(pixels, a, c, d, color);
-    }
-
-    void FillTriangle(Color32[] pixels, Vector2 a, Vector2 b, Vector2 c, Color32 color)
-    {
-        int minX = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.x, Mathf.Min(b.x, c.x)) * (resolution - 1)), 0, resolution - 1);
-        int maxX = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.x, Mathf.Max(b.x, c.x)) * (resolution - 1)), 0, resolution - 1);
-        int minY = Mathf.Clamp(Mathf.FloorToInt(Mathf.Min(a.y, Mathf.Min(b.y, c.y)) * (resolution - 1)), 0, resolution - 1);
-        int maxY = Mathf.Clamp(Mathf.CeilToInt(Mathf.Max(a.y, Mathf.Max(b.y, c.y)) * (resolution - 1)), 0, resolution - 1);
-
-        for (int y = minY; y <= maxY; y++)
-        {
-            for (int x = minX; x <= maxX; x++)
+            // Update visual appearance based on age
+            if (footprint.visualObject != null)
             {
-                Vector2 p = new Vector2(x / (float)(resolution - 1), y / (float)(resolution - 1));
-                if (IsInsideTriangle(p, a, b, c))
+                float fadePercent = age / footprintLifetime; // 0 = recentColor, 1 = oldColor
+                Color currentColor = Color.Lerp(recentColor, oldColor, fadePercent);
+
+                // Get mesh renderer and update material color
+                MeshRenderer renderer = footprint.visualObject.GetComponent<MeshRenderer>();
+                if (renderer != null)
                 {
-                    pixels[y * resolution + x] = color;
+                    renderer.material.color = currentColor;
                 }
             }
         }
     }
 
-    bool IsInsideTriangle(Vector2 p, Vector2 a, Vector2 b, Vector2 c)
+    GameObject CreateFootprintVisual(Vector3 position)
     {
-        float s1 = Cross2D(b - a, p - a);
-        float s2 = Cross2D(c - b, p - b);
-        float s3 = Cross2D(a - c, p - c);
+        GameObject footprint;
 
-        bool hasNeg = s1 < 0f || s2 < 0f || s3 < 0f;
-        bool hasPos = s1 > 0f || s2 > 0f || s3 > 0f;
-        return !(hasNeg && hasPos);
+        if (footprintPrefab != null)
+        {
+            // Use provided prefab for footprint visualization
+            footprint = Instantiate(footprintPrefab, position, Quaternion.Euler(90, 0, 0));
+        }
+        else
+        {
+            // Create a simple quad if no prefab is provided
+            footprint = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            footprint.transform.position = position;
+            footprint.transform.localScale = new Vector3(footprintSize, footprintSize, 1);
+            footprint.transform.rotation = Quaternion.Euler(90, 0, 0); // Rotate to lie flat on the ground
+            
+            // Remove the collider since we don't need it for footprints
+            Destroy(footprint.GetComponent<Collider>());
+
+            // Assign the footprint material
+            MeshRenderer renderer = footprint.GetComponent<MeshRenderer>();
+            renderer.material = new Material(footprintMaterial);
+        }
+        footprint.transform.parent = aircraftTransform; // Parent to aircraft so it moves with it
+        return footprint;
     }
 
-    float Cross2D(Vector2 x, Vector2 y)
+    void OnDestroy()
     {
-        return x.x * y.y - x.y * y.x;
+        // Clean up all footprints
+        foreach (var footprint in footprints)
+        {
+            if (footprint.visualObject != null)
+            {
+                Destroy(footprint.visualObject);
+            }
+        }
+        footprints.Clear();
     }
 }
+    
