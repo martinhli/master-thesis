@@ -5,7 +5,10 @@ Shader "Custom/EOIR_Circle_Footprint"
         _Color ("Color", Color) = (0, 1, 1, 0.5)
         _BaseColor ("Base Color", Color) = (0, 1, 1, 0.5)
         _EdgeSoftness ("Edge Softness", Range(0, 0.5)) = 0.1
-        _GlowIntensity ("Glow Intensity", Range(0, 2)) = 0.5
+        _GlowIntensity ("Glow Intensity", Range(0, 2)) = 1.0
+        _OutlineColor ("Outline Color", Color) = (0.4, 1, 1, 1)
+        _OutlineWidth ("Outline Width", Range(0.005, 0.2)) = 0.08
+        _OutlineIntensity ("Outline Intensity", Range(0, 4)) = 2.0
     }
 
     SubShader
@@ -41,6 +44,9 @@ Shader "Custom/EOIR_Circle_Footprint"
                 float4 _BaseColor;
                 float _EdgeSoftness;
                 float _GlowIntensity;
+                float4 _OutlineColor;
+                float _OutlineWidth;
+                float _OutlineIntensity;
             CBUFFER_END
 
             struct Attributes
@@ -73,9 +79,16 @@ Shader "Custom/EOIR_Circle_Footprint"
                 float radius = 0.5;
                 float circle = 1.0 - smoothstep(radius - _EdgeSoftness, radius, dist);
 
+                float outlineInner = max(0.0, radius - _OutlineWidth);
+                float outlineOuter = radius;
+                float outlineStart = smoothstep(outlineInner - _EdgeSoftness, outlineInner + _EdgeSoftness, dist);
+                float outlineEnd = 1.0 - smoothstep(outlineOuter - _EdgeSoftness, outlineOuter + _EdgeSoftness, dist);
+                float outline = saturate(outlineStart * outlineEnd);
+
                 float glow = saturate((1.0 - dist * 2.0) * _GlowIntensity);
-                float alpha = circle * tint.a;
+                float alpha = max(circle * tint.a, outline * _OutlineColor.a);
                 float3 color = tint.rgb + (glow * 0.3);
+                color += _OutlineColor.rgb * (outline * _OutlineIntensity);
 
                 return half4(color, alpha);
             }

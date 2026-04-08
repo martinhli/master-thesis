@@ -81,7 +81,7 @@ public class cameradisplayer : MonoBehaviour
         
         // Update zoom
         if (zoomText != null)
-            zoomText.text = $"ZOOM: {eoirCamera.fieldOfView:F1}°";
+            zoomText.text = $"FOV: {eoirCamera.fieldOfView:F1}°";
         
         // Update range mode
         if (rangeText != null)
