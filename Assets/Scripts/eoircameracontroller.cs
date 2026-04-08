@@ -186,7 +186,7 @@ public class EOIRCameraController : MonoBehaviour
         // Need a function to set the initial rotation of the camera based on currentPan and currentTilt
         ApplyCameraRotation();
 
-        UpdateStatusText("[EO/IR] EO/IR Camera Ready");
+        UpdateStatusText("[EO/IR] Camera Ready");
 
         if (saveYoloTrainingSamples)
         {
@@ -510,13 +510,13 @@ public class EOIRCameraController : MonoBehaviour
 
     public void TiltUp(float amount)
     {
-        currentTilt += amount;
+        currentTilt -= amount;
         currentTilt = Mathf.Clamp(currentTilt, minTilt, maxTilt);
     }
 
     public void TiltDown(float amount)
     {
-        currentTilt -= amount;
+        currentTilt += amount;
         currentTilt = Mathf.Clamp(currentTilt, minTilt, maxTilt);
     }
 

@@ -7,6 +7,7 @@ using Debug = UnityEngine.Debug;
 using Color = UnityEngine.Color;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
+using Plane = UnityEngine.Plane;
 public class EOIRFootprintTracker : MonoBehaviour
 {
     [Header("References")]
@@ -14,20 +15,24 @@ public class EOIRFootprintTracker : MonoBehaviour
     public Transform aircraftTransform;
 
     [Header("Footprint Settings")]
-    public int maxFootprints = 50;
-    public float footprintInterval = 1f; // Time in seconds between footprint updates
-    public float footprintLifetime = 60f; // Fade after this many seconds
+    public int maxFootprints = 50; // Maximum number of footprints to keep at once
+    public float footprintInterval = 0.25f; // Time in seconds between footprint updates
+    public float footprintLifetime = 300f; // Fade after this many seconds
     public float maxDistance = 50000f; // Max distance from aircraft to place footprints (in meters)
-    [Tooltip("Only colliders on these layers can receive EOIR footprints. Exclude ship layers here.")]
-    public LayerMask footprintSurfaceMask = ~0;
+    public LayerMask footprintSurfaceMask = ~0; // Layers to consider for footprint placement (default to everything)
+    public bool useViewportCoverage = true;  // If true, will try to cover the entire camera viewport with footprints. If false, will just raycast from center of camera.
+    public bool projectOntoSeaPlane = true;
+    public float seaSurface = 0f;
 
     [Header("Visualization Settings")]
-    public GameObject prefabFootprint; // Optional prefab for footprint visualization (should be a simple quad with transparent material)
-    public Shader footprintShader;
+    public Shader footprintShader; // Custom shader for footprint visualization (optional, can use default transparent shader)
     public Color recentColor = new Color(0, 1, 1, 0.8f); // Bright cyan
     public Color oldColor = new Color(0, 0.5f, 0.5f, 0.2f); // Faded cyan
     public float footprintSize = 100f; // Meters covered by each footprint
     public float heightOffset = 10f; // Height above sea level to place footprints
+    public bool keepFootprintsInWorldSpace = true; 
+
+    public bool fadeOverTime = false;
 
     [System.Serializable]
     public class Footprint
@@ -111,32 +116,119 @@ public class EOIRFootprintTracker : MonoBehaviour
 
         int layerMask = footprintSurfaceMask.value == 0 ? ~0 : footprintSurfaceMask.value;
 
-        // Raycast from camera to find where the footprint should be placed
-        RaycastHit hit;
-        if (Physics.Raycast(
-            eoirCamera.transform.position,
-            eoirCamera.transform.forward,
-            out hit,
-            maxDistance,
-            layerMask,
-            QueryTriggerInteraction.Ignore))
-        {
-            // Create new fooprint at hit location
-            Footprint footprint = new Footprint
-            {
-                position = hit.point + Vector3.up * heightOffset,
-                timestamp = Time.time,
-                visualObject = CreateFootprintVisual(hit.point + Vector3.up * heightOffset)
-            };
-            footprints.Enqueue(footprint);
+        Vector3 centerPoint = Vector3.zero;
+        float sizeX = footprintSize;
+        float sizeZ = footprintSize;
 
-            // Remove old footprints
-            while (footprints.Count > maxFootprints)
+        bool hasCoverage = useViewportCoverage && TryGetViewportCoverage(layerMask, out centerPoint, out sizeX, out sizeZ);
+
+        if (!hasCoverage)
+        {
+            // Fallback: center raycast from camera
+            RaycastHit hit;
+            if (!Physics.Raycast(
+                eoirCamera.transform.position,
+                eoirCamera.transform.forward,
+                out hit,
+                maxDistance,
+                layerMask,
+                QueryTriggerInteraction.Ignore))
             {
-                // Need a function to remove the oldest footprint's visual object and then dequeue it
-                RemoveFootprint();
+                return;
+            }
+
+            centerPoint = hit.point;
+            sizeX = footprintSize;
+            sizeZ = footprintSize;
+        }
+
+        // Create new footprint at hit location
+        Footprint footprint = new Footprint
+        {
+            position = centerPoint + Vector3.up * heightOffset,
+            timestamp = Time.time,
+            visualObject = CreateFootprintVisual(centerPoint + Vector3.up * heightOffset, sizeX, sizeZ)
+        };
+        footprints.Enqueue(footprint);
+
+        // Remove old footprints
+        while (footprints.Count > maxFootprints)
+        {
+            RemoveFootprint();
+        }
+    }
+
+    bool TryGetViewportCoverage(int layerMask, out Vector3 center, out float sizeX, out float sizeZ)
+    {
+        Vector3[] viewportCorners =
+        {
+            new Vector3(0f, 0f, 0f),
+            new Vector3(1f, 0f, 0f),
+            new Vector3(0f, 1f, 0f),
+            new Vector3(1f, 1f, 0f)
+        };
+
+        Vector3[] hits = new Vector3[4];
+        for (int i = 0; i < viewportCorners.Length; i++)
+        {
+            Ray ray = eoirCamera.ViewportPointToRay(viewportCorners[i]);
+            if (!TryGetCoveragePoint(ray, layerMask, out hits[i]))
+            {
+                center = Vector3.zero;
+                sizeX = footprintSize;
+                sizeZ = footprintSize;
+                return false;
             }
         }
+
+        center = (hits[0] + hits[1] + hits[2] + hits[3]) * 0.25f;
+        float bottomWidth = Vector3.Distance(hits[0], hits[1]);
+        float topWidth = Vector3.Distance(hits[2], hits[3]);
+        float leftHeight = Vector3.Distance(hits[0], hits[2]);
+        float rightHeight = Vector3.Distance(hits[1], hits[3]);
+
+        sizeX = Mathf.Max(1f, (bottomWidth + topWidth) * 0.5f);
+        sizeZ = Mathf.Max(1f, (leftHeight + rightHeight) * 0.5f);
+        return true;
+    }
+
+    bool TryGetCoveragePoint(Ray ray, int layerMask, out Vector3 point)
+    {
+        if (projectOntoSeaPlane)
+        {
+            Plane seaPlane = new Plane(Vector3.up, new Vector3(0f, seaSurface, 0f));
+            if (seaPlane.Raycast(ray, out float enter) && enter >= 0f && enter <= maxDistance)
+            {
+                point = ray.GetPoint(enter);
+                return true;
+            }
+        }
+
+        return TryGetFarthestHit(ray, layerMask, out point);
+    }
+
+    bool TryGetFarthestHit(Ray ray, int layerMask, out Vector3 hitPoint)
+    {
+        RaycastHit[] hits = Physics.RaycastAll(ray, maxDistance, layerMask, QueryTriggerInteraction.Ignore);
+        if (hits == null || hits.Length == 0)
+        {
+            hitPoint = Vector3.zero;
+            return false;
+        }
+
+        float farthestDistance = -1f;
+        Vector3 farthestPoint = Vector3.zero;
+        for (int i = 0; i < hits.Length; i++)
+        {
+            if (hits[i].distance > farthestDistance)
+            {
+                farthestDistance = hits[i].distance;
+                farthestPoint = hits[i].point;
+            }
+        }
+
+        hitPoint = farthestPoint;
+        return true;
     }
 
     void RemoveFootprint()
@@ -159,7 +251,7 @@ public class EOIRFootprintTracker : MonoBehaviour
             float age = Time.time - footprint.timestamp;
 
             // Remove if too old
-            if (age >= footprintLifetime)
+            if (fadeOverTime && age >= footprintLifetime)
             {
                 RemoveFootprint();
                 continue;
@@ -168,8 +260,8 @@ public class EOIRFootprintTracker : MonoBehaviour
             // Update visual appearance based on age
             if (footprint.visualObject != null)
             {
-                float fadePercent = age / footprintLifetime; // 0 = recentColor, 1 = oldColor
-                Color currentColor = Color.Lerp(recentColor, oldColor, fadePercent);
+                float fadePercent = fadeOverTime ? age / footprintLifetime : 0f; // 0 = recentColor, 1 = oldColor
+                Color currentColor = Color.Lerp(recentColor, oldColor, Mathf.Clamp01(fadePercent));
 
                 // Update all renderers in case footprint prefab has multiple meshes.
                 MeshRenderer[] renderers = footprint.visualObject.GetComponentsInChildren<MeshRenderer>();
@@ -191,7 +283,7 @@ public class EOIRFootprintTracker : MonoBehaviour
         }
     }
 
-    GameObject CreateFootprintVisual(Vector3 position)
+    GameObject CreateFootprintVisual(Vector3 position, float sizeX, float sizeZ)
     {
         if (footprintMaterial == null)
         {
@@ -202,7 +294,7 @@ public class EOIRFootprintTracker : MonoBehaviour
         // Create a simple quad for footprint visualization
         GameObject footprint = GameObject.CreatePrimitive(PrimitiveType.Quad);
         footprint.transform.position = position;
-        footprint.transform.localScale = new Vector3(footprintSize, footprintSize, 1);
+        footprint.transform.localScale = new Vector3(sizeX, sizeZ, 1f);
         footprint.transform.rotation = Quaternion.Euler(90, 0, 0); // Rotate to lie flat on the ground
 
         // Remove the collider since we don't need it for footprints
@@ -212,7 +304,11 @@ public class EOIRFootprintTracker : MonoBehaviour
         MeshRenderer renderer = footprint.GetComponent<MeshRenderer>();
         renderer.material = new Material(footprintMaterial);
 
-        footprint.transform.parent = aircraftTransform; // Parent to aircraft so it moves with it
+        if (!keepFootprintsInWorldSpace && aircraftTransform != null)
+        {
+            footprint.transform.parent = aircraftTransform; // Optional local-space mode
+        }
+
         return footprint;
     }
 
