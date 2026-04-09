@@ -151,7 +151,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.07904053}
+  m_AnchoredPosition: {x: 0, y: 0.04348755}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1001 &64213243
@@ -926,7 +926,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0.4, y: -0.1}
-  m_SizeDelta: {x: 400, y: 200}
+  m_SizeDelta: {x: 400, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &251862924
 MonoBehaviour:
@@ -1583,8 +1583,8 @@ GameObject:
   m_Component:
   - component: {fileID: 396833834}
   - component: {fileID: 396833837}
-  - component: {fileID: 396833836}
   - component: {fileID: 396833835}
+  - component: {fileID: 396833836}
   m_Layer: 0
   m_Name: passenger
   m_TagString: Untagged
@@ -1627,8 +1627,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 6.50685, y: 2.2067604, z: 1.3145918}
-  m_Center: {x: 0.037414856, y: 0.32670218, z: 0.012304459}
+  m_Size: {x: 132.92383, y: 166.26973, z: 652.1746}
+  m_Center: {x: -1.1005859, y: 10.696007, z: -2.7858582}
 --- !u!114 &396833836
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1794,7 +1794,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 0}
-  m_AnchoredPosition: {x: 0, y: 30}
+  m_AnchoredPosition: {x: 0, y: 120}
   m_SizeDelta: {x: 340, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &420852889
@@ -2426,6 +2426,7 @@ MonoBehaviour:
   trackManager: {fileID: 118463707}
   labelPrefab: {fileID: 1549653684184420956, guid: 47346213aa14c4e7da02269c2a21548e, type: 3}
   overlayCamera: {fileID: 1186557780}
+  shipAssociationDistanceThreshold: 300
 --- !u!1 &645403658
 GameObject:
   m_ObjectHideFlags: 0
@@ -3553,6 +3554,7 @@ MonoBehaviour:
   trackManager: {fileID: 118463707}
   labelPrefab: {fileID: 1549653684184420956, guid: 47346213aa14c4e7da02269c2a21548e, type: 3}
   overlayCamera: {fileID: 1186557780}
+  shipAssociationDistanceThreshold: 150
 --- !u!4 &857207534
 Transform:
   m_ObjectHideFlags: 0
@@ -3562,7 +3564,7 @@ Transform:
   m_GameObject: {fileID: 857207532}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0.00012, y: 0, z: 0.00012}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -3829,7 +3831,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -40}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 80, y: 80}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1176031332
@@ -3852,7 +3854,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 2f8349570a152884fb6cf7ebdc8c18b3, type: 3}
+  m_Sprite: {fileID: 21300000, guid: db3e7b7c8db355e499429545071a0321, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
@@ -4604,6 +4606,9 @@ MonoBehaviour:
   totalContacts: 0
   taskStartTime: 0
   taskActive: 0
+  trackManager: {fileID: 118463707}
+  autoStartTaskWhenTracksAvailable: 1
+  statusResetDelaySeconds: 2
 --- !u!1 &1344406359
 GameObject:
   m_ObjectHideFlags: 0
@@ -5751,7 +5756,6 @@ MonoBehaviour:
   useViewportFallbackDetection: 0
   viewportFallbackCenterTolerance: 0.12
   physicsHitSelectionTolerance: 0.18
-  sphereCastTarget: {fileID: 0}
   saveYoloTrainingSamples: 0
   yoloDatasetFolderName: yolo_dataset
   exportJpg: 1
@@ -6658,8 +6662,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0.4, y: 0.15}
-  m_SizeDelta: {x: 400, y: 300}
+  m_AnchoredPosition: {x: 0.4, y: 0.2}
+  m_SizeDelta: {x: 400, y: 200}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1874463470
 MonoBehaviour:
@@ -6862,7 +6866,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fd45767f494ac4f71ad651f2a2c8fc1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::XROriginPlayMode
-  fallbackEyeHeight: 1.5
+  fallbackEyeHeight: 1.2
   disableTrackedPoseDriverWhenNoXR: 1
 --- !u!1001 &1983559118
 PrefabInstance:
@@ -7160,8 +7164,8 @@ BoxCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 3
-  m_Size: {x: 11.094876, y: 3.0998015, z: 1}
-  m_Center: {x: -0.07138366, y: 1.0499011, z: 0}
+  m_Size: {x: 232.15869, y: 238.15869, z: 1055.8978}
+  m_Center: {x: 3.3112793, y: 118.579346, z: 84.41644}
 --- !u!54 &2001717757
 Rigidbody:
   m_ObjectHideFlags: 0

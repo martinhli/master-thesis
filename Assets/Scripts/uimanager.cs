@@ -50,12 +50,38 @@ public class UIManager : MonoBehaviour
     public float taskStartTime;
     public bool taskActive = false;
 
+    [Header("Test Settings")]
+    public TrackManager trackManager;
+    public bool autoStartTaskWhenTracksAvailable = true;
+    public float statusResetDelaySeconds = 2f;
+
     private Dictionary<string, GameObject> contactListItems = new Dictionary<string, GameObject>();
+    private HashSet<string> confirmedTrackIds = new HashSet<string>();
+    private Coroutine resetStatusCoroutine;
 
     void Start()
     {
         // Initialize UI by setting task instructions and setting contact status
         InitializeUI();
+
+        if (trackManager == null)
+        {
+            trackManager = FindFirstObjectByType<TrackManager>();
+        }
+        // If auto-start is enabled, check for existing tracks and start task if any are found
+        TryAutoStartTask();
+    }
+
+    void Update()
+    {
+        if (!taskActive)
+        {
+            TryAutoStartTask();
+            return;
+        }
+
+        UpdateTimer();
+        UpdateProgress();
     }
 
     void InitializeUI()
@@ -65,6 +91,52 @@ public class UIManager : MonoBehaviour
         "Aim EO/IR camera at radar contacts and press [SPACE] to confirm.");
         // Need a function to set status panel based on current contact status
         SetConfirmationStatus("READY", "Waiting to start...", readyColor);
+        UpdateProgress();
+        UpdateTimer();
+    }
+
+    private void TryAutoStartTask()
+    {
+        if (taskActive || !autoStartTaskWhenTracksAvailable)
+        {
+            return;
+        }
+
+        if (radarContacts != null && radarContacts.Count > 0)
+        {
+            StartTask(new List<Track>(radarContacts));
+            return;
+        }
+
+        if (trackManager == null)
+        {
+            return;
+        }
+
+        List<Track> activeTracks = trackManager.GetActiveTracks();
+        if (activeTracks != null && activeTracks.Count > 0)
+        {
+            StartTask(activeTracks);
+        }
+    }
+
+    private void EnsureTaskStarted()
+    {
+        if (taskActive)
+        {
+            return;
+        }
+
+        TryAutoStartTask();
+
+        if (taskActive)
+        {
+            return;
+        }
+
+        taskActive = true;
+        taskStartTime = Time.time;
+        SetConfirmationStatus("READY", "Task started.", readyColor);
     }
 
     public void StartTask(List<Track> contacts)
@@ -72,11 +144,14 @@ public class UIManager : MonoBehaviour
         taskActive = true;
         taskStartTime = Time.time;
         confirmedContacts = 0;
+        confirmedTrackIds.Clear();
         radarContacts = contacts;
         totalContacts = radarContacts.Count;
 
         // Need a function to populate contact list panel with current contacts
         PopulateContactList();
+        UpdateProgress();
+        UpdateTimer();
 
         Debug.Log($"[UIManager] Task started with {totalContacts} contacts.");
     }
@@ -164,8 +239,14 @@ public class UIManager : MonoBehaviour
 
     public void UpdateContactStatus(string trackID, bool confirmed)
     {
+        if (string.IsNullOrEmpty(trackID))
+        {
+            return;
+        }
+
         if (contactListItems.ContainsKey(trackID))
         {
+            // Update the status icon color for the contact list item
             GameObject item = contactListItems[trackID];
             Image statusIcon = item.transform.Find("StatusIcon")?.GetComponent<Image>();
 
@@ -173,13 +254,21 @@ public class UIManager : MonoBehaviour
             {
                 statusIcon.color = confirmed ? Color.green : Color.red;
             }
-            if (confirmed)
-            {
-                confirmedContacts++;
-            }
-
-            Debug.Log($"[UIManager] Contact {trackID} status: {(confirmed ? "CONFIRMED" : "REJECTED")}");
         }
+
+        if (confirmed)
+        {
+            // Count each track only once, even if user captures it multiple times.
+            if (confirmedTrackIds.Add(trackID))
+            {
+                confirmedContacts = confirmedTrackIds.Count;
+            }
+        }
+
+
+        Debug.Log($"[UIManager] Contact {trackID} status: {(confirmed ? "CONFIRMED" : "REJECTED")}");
+
+        UpdateProgress();
     }
 
     // Need two functions that can update the progress panel with current confirmed contacts and elapsed time in minutes and seconds format
@@ -205,7 +294,7 @@ public class UIManager : MonoBehaviour
         }
 
         // Check if task is complete and update status panel accordingly
-        if (confirmedContacts >= totalContacts && taskActive)
+        if (taskActive && totalContacts > 0 && confirmedContacts >= totalContacts)
         {
             // Need a function to set status panel to set task as complete
             CompleteTask();
@@ -230,24 +319,31 @@ public class UIManager : MonoBehaviour
     // Public methods for external scripts to call when confirming or rejecting contacts
     public void OnCaptureStarted()
     {
+        EnsureTaskStarted();
+        CancelPendingStatusReset();
         SetConfirmationStatus("CAPTURING", "EO/IR camera is capturing...", captureColor);
     }
 
     public void OnAnalyzing()
     {
+        CancelPendingStatusReset();
         SetConfirmationStatus("ANALYZING", "Running detection...", captureColor);
     }
 
     public void OnShipConfirmed(string trackID)
     {
+        EnsureTaskStarted();
         SetConfirmationStatus("CONFIRMED", "Visual contact verified", confirmedColor);
         UpdateContactStatus(trackID, true);
+        ScheduleStatusReset();
     }
 
     public void OnNoShipDetected(string trackID)
     {
+        EnsureTaskStarted();
         SetConfirmationStatus("REJECTED", "False alarm or missed detection", rejectedColor);
         UpdateContactStatus(trackID, false);
+        ScheduleStatusReset();
     }
 
     public void TogglePanel(GameObject panel)
@@ -256,5 +352,38 @@ public class UIManager : MonoBehaviour
         {
             panel.SetActive(!panel.activeSelf);
         }
+    }
+    public void ResetStatus()
+    {
+        SetConfirmationStatus("READY", "Waiting for contact...", readyColor);
+    }
+
+    private void CancelPendingStatusReset()
+    {
+        if (resetStatusCoroutine != null)
+        {
+            StopCoroutine(resetStatusCoroutine);
+            resetStatusCoroutine = null;
+        }
+    }
+
+    private void ScheduleStatusReset()
+    {
+        CancelPendingStatusReset();
+
+        if (statusResetDelaySeconds <= 0f)
+        {
+            ResetStatus();
+            return;
+        }
+
+        resetStatusCoroutine = StartCoroutine(ResetStatusAfterDelay());
+    }
+
+    private System.Collections.IEnumerator ResetStatusAfterDelay()
+    {
+        yield return new WaitForSecondsRealtime(statusResetDelaySeconds);
+        resetStatusCoroutine = null;
+        ResetStatus();
     }
 }

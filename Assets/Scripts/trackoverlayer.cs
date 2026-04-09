@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
+using System;
 using Data;
 
 public class trackoverlayer : MonoBehaviour
@@ -8,6 +9,7 @@ public class trackoverlayer : MonoBehaviour
     public TrackManager trackManager;
     public GameObject labelPrefab;
     public Camera overlayCamera;
+    public float shipAssociationDistanceThreshold = 300f;
 
     private Dictionary<string, GameObject> activeLabels = new Dictionary<string, GameObject>();
 
@@ -25,15 +27,16 @@ public class trackoverlayer : MonoBehaviour
         if (confirmedTracks == null) return;
 
         // Update existing labels and create new ones for new tracks
-        HashSet<string> currentTrackIds = new HashSet<string>();
+        HashSet<string> currentLabelKeys = new HashSet<string>();
 
         foreach (var track in confirmedTracks)
         {
             if (track == null || string.IsNullOrEmpty(track.trackid)) continue;
 
-            currentTrackIds.Add(track.trackid);
+            string labelKey = GetStableLabelKey(track);
+            currentLabelKeys.Add(labelKey);
 
-            if (!activeLabels.ContainsKey(track.trackid))
+            if (!activeLabels.ContainsKey(labelKey))
             {
                 // Create new label for this track
                 GameObject labelObj = Instantiate(labelPrefab);
@@ -46,23 +49,23 @@ public class trackoverlayer : MonoBehaviour
                 }
                 label.track = track;
                 label.SetViewCamera(overlayCamera);
-                activeLabels[track.trackid] = labelObj;
+                activeLabels[labelKey] = labelObj;
             }
             else
             {
-                if (activeLabels[track.trackid] == null)
+                if (activeLabels[labelKey] == null)
                 {
-                    activeLabels.Remove(track.trackid);
+                    activeLabels.Remove(labelKey);
                     continue;
                 }
 
                 // Update existing label
-                var label = activeLabels[track.trackid].GetComponent<tracklabeler>();
+                var label = activeLabels[labelKey].GetComponent<tracklabeler>();
                 if (label == null)
                 {
                     Debug.LogError("trackoverlayer: existing label is missing tracklabeler component.");
-                    Destroy(activeLabels[track.trackid]);
-                    activeLabels.Remove(track.trackid);
+                    Destroy(activeLabels[labelKey]);
+                    activeLabels.Remove(labelKey);
                     continue;
                 }
                 label.track = track;
@@ -74,7 +77,7 @@ public class trackoverlayer : MonoBehaviour
         List<string> tracksToRemove = new List<string>();
         foreach (var entry in activeLabels)
         {
-            if (!currentTrackIds.Contains(entry.Key))
+            if (!currentLabelKeys.Contains(entry.Key))
             {
                 Destroy(entry.Value);
                 tracksToRemove.Add(entry.Key);
@@ -84,5 +87,64 @@ public class trackoverlayer : MonoBehaviour
         {
             activeLabels.Remove(trackId);
         }
+    }
+
+    private string GetStableLabelKey(Track track)
+    {
+        if (track.shipData != null)
+        {
+            if (!string.IsNullOrEmpty(track.shipData.mmsi))
+            {
+                return "MMSI_" + track.shipData.mmsi;
+            }
+
+            if (!string.IsNullOrEmpty(track.shipData.name))
+            {
+                return "NAME_" + track.shipData.name;
+            }
+        }
+
+        SimulatedShip ship = FindBestShipForTrack(track);
+        if (ship != null)
+        {
+            return "SHIP_" + ship.GetInstanceID();
+        }
+
+        return "TRACK_" + track.trackid;
+    }
+
+    private SimulatedShip FindBestShipForTrack(Track track)
+    {
+        if (track == null)
+        {
+            return null;
+        }
+
+        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+        SimulatedShip bestShip = null;
+        float bestDistance = float.MaxValue;
+
+        for (int i = 0; i < ships.Length; i++)
+        {
+            SimulatedShip ship = ships[i];
+            if (ship == null)
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(track.position, ship.transform.position);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestShip = ship;
+            }
+        }
+
+        if (bestShip != null && bestDistance <= Mathf.Max(0f, shipAssociationDistanceThreshold))
+        {
+            return bestShip;
+        }
+
+        return null;
     }
 }

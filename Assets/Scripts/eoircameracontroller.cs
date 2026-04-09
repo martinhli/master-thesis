@@ -571,7 +571,7 @@ public class EOIRCameraController : MonoBehaviour
         if (tryPhysicsFirst)
         {
             detectedShip = RaycastDetectShip();
-            contactConfirmed = (detectedShip != null);
+            contactConfirmed = IsExpectedUnknownContact(detectedShip);
         }
 
         bool yoloRequested = !contactConfirmed && useYOLODetection && yoloDetector != null;
@@ -589,16 +589,7 @@ public class EOIRCameraController : MonoBehaviour
             if (yoloFoundShip)
             {
                 detectedShip = requireRaycastHitForYOLOConfirmation ? RaycastDetectShip() : GetShipInView();
-                contactConfirmed = detectedShip != null;
-
-                if (contactConfirmed && requireExpectedContactMatch && expectedUnknownContact != null)
-                {
-                    contactConfirmed = detectedShip == expectedUnknownContact;
-                    if (!contactConfirmed)
-                    {
-                        UpdateStatusText("Contact rejected: captured vessel does not match the unknown contact label.");
-                    }
-                }
+                contactConfirmed = IsExpectedUnknownContact(detectedShip);
 
                 if (contactConfirmed)
                 {
@@ -606,7 +597,7 @@ public class EOIRCameraController : MonoBehaviour
                 }
                 else
                 {
-                    UpdateStatusText("YOLO detected vessel but contact was not centered. Rejected.");
+                    UpdateStatusText("YOLO detected vessel, but it is not the expected unknown contact. Rejected.");
                 }
             }
             else
@@ -616,7 +607,7 @@ public class EOIRCameraController : MonoBehaviour
                 if (useRaycastDetection && !tryPhysicsFirst)
                 {
                     detectedShip = RaycastDetectShip();
-                    contactConfirmed = (detectedShip != null);
+                    contactConfirmed = IsExpectedUnknownContact(detectedShip);
                 }
             }
         }
@@ -624,7 +615,7 @@ public class EOIRCameraController : MonoBehaviour
         {
             // Fallback mode when YOLO is disabled/unavailable.
             detectedShip = RaycastDetectShip();
-            contactConfirmed = (detectedShip != null);
+            contactConfirmed = IsExpectedUnknownContact(detectedShip);
         }
 
         if (contactConfirmed && detectedShip != null)
@@ -633,7 +624,7 @@ public class EOIRCameraController : MonoBehaviour
         }
         else
         {
-            HandleDetectionFailure();
+            HandleDetectionFailure(detectedShip);
         }
 
         if (saveYoloTrainingSamples && capturedFrame != null)
@@ -1110,19 +1101,27 @@ public class EOIRCameraController : MonoBehaviour
         OnShipDetected?.Invoke(ship);
     }
 
-    private void HandleDetectionFailure()
+    private void HandleDetectionFailure(SimulatedShip detectedShip)
     {
-        string message = "No ship detected - aim camera at a ship and try again.";
+        string message = "No valid unknown contact detected - aim camera at one and try again.";
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message}");
 
         if (uiManager != null)
         {
-            // If no target is known, UIManager safely ignores unknown IDs.
-            string rejectedTrackId = !string.IsNullOrEmpty(lastConfirmedTrackId)
-                ? lastConfirmedTrackId
-                : BuildTrackIdForShip(expectedUnknownContact);
+            // Update the UI for the ship currently in view if possible; otherwise use a generic rejection id.
+            string rejectedTrackId = BuildTrackIdForShip(detectedShip);
+
+            if (string.IsNullOrEmpty(rejectedTrackId))
+            {
+                rejectedTrackId = BuildTrackIdForShip(expectedUnknownContact);
+            }
+
+            if (string.IsNullOrEmpty(rejectedTrackId))
+            {
+                rejectedTrackId = "NO_VALID_UNKNOWN_CONTACT";
+            }
 
             if (!string.IsNullOrEmpty(rejectedTrackId))
             {
@@ -1146,6 +1145,11 @@ public class EOIRCameraController : MonoBehaviour
         }
 
         return ship.shipName;
+    }
+
+    private bool IsExpectedUnknownContact(SimulatedShip ship)
+    {
+        return ship != null && !ship.aisTransponder;
     }
 
     /// <summary>
