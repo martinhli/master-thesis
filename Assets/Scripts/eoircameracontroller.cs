@@ -52,6 +52,10 @@ public class EOIRCameraController : MonoBehaviour
     public TextMeshProUGUI statusText;
     public Image flashEffect;
 
+    [Header("UI Integration")]
+    [Tooltip("Optional UI manager used to reflect capture/analyze/confirm/reject states")]
+    public UIManager uiManager;
+
     [Header("Detection Parameters")]
 
     [Tooltip("YOLO detector used to classify captured EO/IR images")]
@@ -162,6 +166,7 @@ public class EOIRCameraController : MonoBehaviour
     private bool previousAButtonState;
     private bool previousBButtonState;
     private bool rightControllerActive;
+    private string lastConfirmedTrackId;
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -305,6 +310,10 @@ public class EOIRCameraController : MonoBehaviour
 
         if (capturePressed)
         {
+            if (uiManager != null)
+            {
+                uiManager.OnCaptureStarted();
+            }
             FlashScreen();
             CaptureImage();
         }
@@ -551,6 +560,11 @@ public class EOIRCameraController : MonoBehaviour
     public void CaptureImage()
     {
         UpdateStatusText("Capturing image...");
+
+        if (uiManager != null)
+        {
+            uiManager.OnAnalyzing();
+        }
 
         SimulatedShip detectedShip = null;
         bool contactConfirmed = false;
@@ -1092,6 +1106,14 @@ public class EOIRCameraController : MonoBehaviour
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message} (MMSI: {ship.mmsi})");
+
+        if (uiManager != null)
+        {
+            string trackId = BuildTrackIdForShip(ship);
+            lastConfirmedTrackId = trackId;
+            uiManager.OnShipConfirmed(trackId);
+        }
+
         OnShipDetected?.Invoke(ship);
     }
 
@@ -1101,7 +1123,36 @@ public class EOIRCameraController : MonoBehaviour
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message}");
+
+        if (uiManager != null)
+        {
+            // If no target is known, UIManager safely ignores unknown IDs.
+            string rejectedTrackId = !string.IsNullOrEmpty(lastConfirmedTrackId)
+                ? lastConfirmedTrackId
+                : BuildTrackIdForShip(expectedUnknownContact);
+
+            if (!string.IsNullOrEmpty(rejectedTrackId))
+            {
+                uiManager.OnNoShipDetected(rejectedTrackId);
+            }
+        }
+
         OnNoShipDetected?.Invoke();
+    }
+
+    private string BuildTrackIdForShip(SimulatedShip ship)
+    {
+        if (ship == null)
+        {
+            return string.Empty;
+        }
+
+        if (!string.IsNullOrEmpty(ship.mmsi))
+        {
+            return $"AIS_{ship.mmsi}";
+        }
+
+        return ship.shipName;
     }
 
     /// <summary>
