@@ -151,7 +151,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.021514893}
+  m_AnchoredPosition: {x: 0, y: 0.07904053}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1001 &64213243
@@ -2012,7 +2012,7 @@ MonoBehaviour:
   mmsi: '257529094 '
   imo: IMO2260730
   shipType: 4
-  aisTransponder: 1
+  aisTransponder: 0
   radarCrossSection: 1.48
   aisRange: 5000
   enableAutopilot: 1
@@ -4542,6 +4542,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1337296457}
+  - component: {fileID: 1337296458}
   m_Layer: 0
   m_Name: UIManager
   m_TagString: Untagged
@@ -4568,6 +4569,41 @@ Transform:
   - {fileID: 251862923}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 180, z: 0}
+--- !u!114 &1337296458
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1337296456}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d992d394bee9746849e53126e207f7ca, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UIManager
+  taskInstructionPanel: {fileID: 190506318}
+  contactListPanel: {fileID: 2129648764}
+  confirmationStatusPanel: {fileID: 1874463468}
+  progressPanel: {fileID: 251862922}
+  taskTitleText: {fileID: 1985699252}
+  taskInstructionText: {fileID: 390578332}
+  contactListContent: {fileID: 31673438}
+  contactListItemPrefab: {fileID: 3295845083246200259, guid: dbcd7611696c9427abdcc37ffc4f1915, type: 3}
+  confirmationStatusText: {fileID: 168742053}
+  statusIcon: {fileID: 1176031332}
+  detailText: {fileID: 645403660}
+  readyColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  captureColor: {r: 0, g: 1, b: 1, a: 1}
+  confirmedColor: {r: 0, g: 1, b: 0, a: 1}
+  rejectedColor: {r: 1, g: 0, b: 0, a: 1}
+  contactsConfirmedText: {fileID: 757874398}
+  timerText: {fileID: 2068015225}
+  progressBar: {fileID: 420852889}
+  radarContacts: []
+  confirmedContacts: 0
+  totalContacts: 0
+  taskStartTime: 0
+  taskActive: 0
 --- !u!1 &1344406359
 GameObject:
   m_ObjectHideFlags: 0
@@ -5700,18 +5736,19 @@ MonoBehaviour:
   currentZoom: 45
   statusText: {fileID: 1694589633}
   flashEffect: {fileID: 1890296589}
+  uiManager: {fileID: 1337296458}
   yoloDetector: {fileID: 0}
   useYOLODetection: 0
   usePhysicsDetection: 1
-  requireRaycastHitForYOLOConfirmation: 1
+  requireRaycastHitForYOLOConfirmation: 0
   captureWidth: 640
   captureHeight: 640
   expectedUnknownContact: {fileID: 0}
   requireExpectedContactMatch: 0
   useRaycastDetection: 1
-  detectionRange: 15000
-  detectionSphereRadius: 25
-  useViewportFallbackDetection: 1
+  detectionRange: 30000
+  detectionSphereRadius: 45
+  useViewportFallbackDetection: 0
   viewportFallbackCenterTolerance: 0.12
   physicsHitSelectionTolerance: 0.18
   sphereCastTarget: {fileID: 0}
@@ -7093,7 +7130,7 @@ MonoBehaviour:
   mmsi: 257106769
   imo: IMO0614819
   shipType: 0
-  aisTransponder: 1
+  aisTransponder: 0
   radarCrossSection: 2.12
   aisRange: 5000
   enableAutopilot: 1

@@ -3,11 +3,15 @@ using UnityEngine.UI;
 using TMPro;
 using Data;
 using System.Collections.Generic;
-using System.Threading.Tasks.Dataflow;
 using System.Reflection;
 using System.Drawing;
 using System.Diagnostics;
 using System.Numerics;
+
+using Color = UnityEngine.Color;
+using Debug = UnityEngine.Debug;
+using Vector3 = UnityEngine.Vector3;
+
 
 public class UIManager : MonoBehaviour
 {
@@ -29,10 +33,10 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI confirmationStatusText;
     public Image statusIcon;
     public TextMeshProUGUI detailText;
-    public Color readyColor = Color.Yellow;
-    public Color captureColor = Color.Cyan;
-    public Color confirmedColor = Color.Green;
-    public Color rejectedColor = Color.Red;
+    public Color readyColor = Color.yellow;
+    public Color captureColor = Color.cyan;
+    public Color confirmedColor = Color.green;
+    public Color rejectedColor = Color.red;
 
     [Header("Progress Status")]
     public TextMeshProUGUI contactsConfirmedText;
@@ -143,16 +147,16 @@ public class UIManager : MonoBehaviour
             if (idText != null) idText.text = track.trackid;
             if (distText != null)
             {
-                float distance = Vector3.Distance(Vector3.Zero, track.position) / 1000f;;
+                float distance = Vector3.Distance(Vector3.zero, track.position) / 1000f;;
                 distText.text = $"{distance:F1} km"; 
             } 
             if (bearingText != null)
             {
-                float bearing = MathF.Atan2(track.position.X, track.position.Z) / (MathF.PI / 180f);
+                float bearing = Mathf.Atan2(track.position.x, track.position.z) / (Mathf.PI / 180f);
                 if (bearing < 0) bearing += 360f;
                 bearingText.text = $"{bearing:F0}°";
             }
-            if (statusIcon != null) statusIcon.color = Color.Yellow;
+            if (statusIcon != null) statusIcon.color = Color.yellow;
 
             contactListItems[track.trackid] = item;
         }
@@ -167,7 +171,7 @@ public class UIManager : MonoBehaviour
 
             if (statusIcon != null)
             {
-                statusIcon.color = confirmed ? Color.Green : Color.Red;
+                statusIcon.color = confirmed ? Color.green : Color.red;
             }
             if (confirmed)
             {
@@ -183,8 +187,8 @@ public class UIManager : MonoBehaviour
     {
         if (timerText == null) return;
         float elapsedTime = Time.time - taskStartTime;
-        int minutes = MathF.FloorToInt(elapsedTime / 60f);
-        int seconds = MathF.FloorToInt(elapsedTime % 60f);
+        int minutes = Mathf.FloorToInt(elapsedTime / 60f);
+        int seconds = Mathf.FloorToInt(elapsedTime % 60f);
         timerText.text = $"{minutes:00}:{seconds:00}";    
     }
 
@@ -214,8 +218,8 @@ public class UIManager : MonoBehaviour
         taskActive = false;
 
         float completionTime = Time.time - taskStartTime;
-        int minutes = MathF.FloorToInt(completionTime / 60f);
-        int seconds = MathF.FloorToInt(completionTime % 60f);
+        int minutes = Mathf.FloorToInt(completionTime / 60f);
+        int seconds = Mathf.FloorToInt(completionTime % 60f);
 
         SetConfirmationStatus("TASK COMPLETE",
         $"All contacts confirmed in {minutes:00}:{seconds:00}", confirmedColor);

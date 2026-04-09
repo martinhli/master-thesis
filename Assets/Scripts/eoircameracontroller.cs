@@ -102,9 +102,6 @@ public class EOIRCameraController : MonoBehaviour
     [Range(0.01f, 0.5f)]
     public float physicsHitSelectionTolerance = 0.18f;
 
-    [Tooltip("Spherecast target object")]
-    public GameObject sphereCastTarget;
-
     [Header("YOLO Training Capture")]
 
     [Tooltip("Save each capture as YOLO training data (image + .txt labels)")]
@@ -894,7 +891,6 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip raycastShip = SelectBestShipFromHits(rayHits, physicsHitSelectionTolerance);
         if (raycastShip != null)
         {
-            sphereCastTarget = raycastShip.gameObject;
             UpdateStatusText($"Ship detected {raycastShip.shipName} by center raycast");
             return raycastShip;
         }
@@ -904,7 +900,6 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip sphereShip = SelectBestShipFromHits(sphereHits, physicsHitSelectionTolerance);
         if (sphereShip != null)
         {
-            sphereCastTarget = sphereShip.gameObject;
             UpdateStatusText($"Ship detected {sphereShip.shipName} by spherecast");
             return sphereShip;
         }
@@ -914,13 +909,11 @@ public class EOIRCameraController : MonoBehaviour
             SimulatedShip fallbackShip = GetBestShipNearReticle(viewportFallbackCenterTolerance);
             if (fallbackShip != null)
             {
-                sphereCastTarget = fallbackShip.gameObject;
                 UpdateStatusText($"Ship detected {fallbackShip.shipName} by viewport fallback");
                 return fallbackShip;
             }
         }
         
-        sphereCastTarget = null;
         return null;
     }
     
