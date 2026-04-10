@@ -4,6 +4,15 @@ using Data;
 
 public class tracklabeler : MonoBehaviour
 {
+    public enum LabelDisplayMode
+    {
+        AISDeterministicIdentity = 1,
+        RadarUncertainIdentity = 2,
+        FusedUncertaintyAwareIdentity = 3
+    }
+
+    public static LabelDisplayMode ActiveDisplayMode = LabelDisplayMode.AISDeterministicIdentity;
+
     public TMP_Text labelText;
     public Track track;
 
@@ -116,10 +125,40 @@ public class tracklabeler : MonoBehaviour
     {
         if (track == null) return;
 
-        string name = track.shipData != null ? track.shipData.name : "Unknown";
-        string confidence = track.identityConfidence.ToString();
-        labelText.text = name + "\n(" + confidence + ")";
-        labelText.color = GetConfidenceColor(track.identityConfidence);
+        if (labelText == null)
+        {
+            return;
+        }
+
+        switch (ActiveDisplayMode)
+        {
+            case LabelDisplayMode.AISDeterministicIdentity:
+            {
+                string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
+                    ? track.shipData.name
+                    : track.trackid;
+                labelText.text = identity;
+                labelText.color = Color.white;
+                break;
+            }
+
+            case LabelDisplayMode.RadarUncertainIdentity:
+            {
+                labelText.text = "RADAR CONTACT";
+                labelText.color = Color.yellow;
+                break;
+            }
+
+            case LabelDisplayMode.FusedUncertaintyAwareIdentity:
+            {
+                string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
+                    ? track.shipData.name
+                    : "UNKNOWN";
+                labelText.text = $"{identity}\\nConf: {track.identityConfidence}\\nU: {track.positionUncertainty:F0} m";
+                labelText.color = GetConfidenceColor(track.identityConfidence);
+                break;
+            }
+        }
     }
 
     Color GetConfidenceColor (IdentityConfidence confidence)

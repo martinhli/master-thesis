@@ -15,6 +15,13 @@ using Vector3 = UnityEngine.Vector3;
 
 public class UIManager : MonoBehaviour
 {
+    public enum StudyScenario
+    {
+        AISDeterministicBaseline = 1,
+        RadarEOIRDegraded = 2,
+        FusedUncertaintyAware = 3
+    }
+
     [Header("Panel References")]
     public GameObject taskInstructionPanel;
     public GameObject contactListPanel;
@@ -55,6 +62,10 @@ public class UIManager : MonoBehaviour
     public bool autoStartTaskWhenTracksAvailable = true;
     public float statusResetDelaySeconds = 2f;
 
+    [Header("Study Scenario")]
+    public StudyScenario scenario = StudyScenario.RadarEOIRDegraded;
+    public bool applyScenarioInstructionsOnStart = true;
+
     private Dictionary<string, GameObject> contactListItems = new Dictionary<string, GameObject>();
     private HashSet<string> confirmedTrackIds = new HashSet<string>();
     private Coroutine resetStatusCoroutine;
@@ -86,13 +97,55 @@ public class UIManager : MonoBehaviour
 
     void InitializeUI()
     {
-        // Need a function to set task instructions based on the current task
-        SetTaskInstructions("TEST CONDITION 2: VISUAL CONFIRMATION",
-        "Aim EO/IR camera at radar contacts and press [SPACE] to confirm.");
-        // Need a function to set status panel based on current contact status
-        SetConfirmationStatus("READY", "Waiting to start...", readyColor);
+        if (applyScenarioInstructionsOnStart)
+        {
+            ApplyScenarioInstructions();
+        }
+        else
+        {
+            SetConfirmationStatus("READY", "Waiting to start...", readyColor);
+        }
+
         UpdateProgress();
         UpdateTimer();
+    }
+
+    public void ConfigureScenario(StudyScenario selectedScenario)
+    {
+        scenario = selectedScenario;
+        ApplyScenarioInstructions();
+    }
+
+    public bool IsEOIRAvailableForCurrentScenario()
+    {
+        return scenario != StudyScenario.AISDeterministicBaseline;
+    }
+
+    private void ApplyScenarioInstructions()
+    {
+        switch (scenario)
+        {
+            case StudyScenario.AISDeterministicBaseline:
+                SetTaskInstructions(
+                    "SCENARIO 1: AIS DETERMINISTIC BASELINE",
+                    "Use AIS AR overlays to locate the target and confirm identity. No uncertainty cues or EO/IR support are available.");
+                SetConfirmationStatus("READY", "Awaiting AIS-based target confirmation...", readyColor);
+                break;
+
+            case StudyScenario.RadarEOIRDegraded:
+                SetTaskInstructions(
+                    "SCENARIO 2: RADAR + EO/IR DEGRADED",
+                    "Locate radar contacts, task EO/IR camera, and confirm the correct target manually.");
+                SetConfirmationStatus("READY", "Awaiting radar contact confirmation with EO/IR...", readyColor);
+                break;
+
+            case StudyScenario.FusedUncertaintyAware:
+                SetTaskInstructions(
+                    "SCENARIO 3: FUSED UNCERTAINTY-AWARE",
+                    "Use fused AIS/radar overlays and uncertainty cues to assess reliability. Task EO/IR when needed before confirming.");
+                SetConfirmationStatus("READY", "Awaiting uncertainty-aware target confirmation...", readyColor);
+                break;
+        }
     }
 
     private void TryAutoStartTask()
@@ -319,6 +372,12 @@ public class UIManager : MonoBehaviour
     // Public methods for external scripts to call when confirming or rejecting contacts
     public void OnCaptureStarted()
     {
+        if (!IsEOIRAvailableForCurrentScenario())
+        {
+            SetConfirmationStatus("INFO", "EO/IR tasking is disabled in Scenario 1.", readyColor);
+            return;
+        }
+
         EnsureTaskStarted();
         CancelPendingStatusReset();
         SetConfirmationStatus("CAPTURING", "EO/IR camera is capturing...", captureColor);
