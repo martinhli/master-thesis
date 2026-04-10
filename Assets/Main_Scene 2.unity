@@ -151,7 +151,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.04348755}
+  m_AnchoredPosition: {x: 0, y: 0.029449463}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1001 &64213243
@@ -2427,6 +2427,9 @@ MonoBehaviour:
   labelPrefab: {fileID: 1549653684184420956, guid: 47346213aa14c4e7da02269c2a21548e, type: 3}
   overlayCamera: {fileID: 1186557780}
   shipAssociationDistanceThreshold: 300
+  maxLabelTimeoutSeconds: 1.5
+  maxTrackAgeSeconds: 4
+  onlyShowUnknownTargetsInIdentityTaskModes: 1
 --- !u!1 &645403658
 GameObject:
   m_ObjectHideFlags: 0
@@ -2604,7 +2607,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -30}
+  m_AnchoredPosition: {x: 0, y: 10}
   m_SizeDelta: {x: -20, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &652796596
@@ -3555,6 +3558,9 @@ MonoBehaviour:
   labelPrefab: {fileID: 1549653684184420956, guid: 47346213aa14c4e7da02269c2a21548e, type: 3}
   overlayCamera: {fileID: 1186557780}
   shipAssociationDistanceThreshold: 150
+  maxLabelTimeoutSeconds: 1.5
+  maxTrackAgeSeconds: 4
+  onlyShowUnknownTargetsInIdentityTaskModes: 1
 --- !u!4 &857207534
 Transform:
   m_ObjectHideFlags: 0
@@ -4409,6 +4415,63 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1313241783}
   m_CullTransparentMesh: 1
+--- !u!1 &1324848167
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1324848169}
+  - component: {fileID: 1324848168}
+  m_Layer: 0
+  m_Name: TestManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1324848168
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1324848167}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4dd40a9c027946aca8563d8d091d757, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StudyScenarioController
+  selectedScenario: 2
+  applyOnStart: 1
+  clearTracksOnScenarioChange: 1
+  useTypeBasedUnknownContacts: 1
+  unknownContactShipTypes: 0000000002000000
+  uiManager: {fileID: 1337296458}
+  sensorSimulator: {fileID: 1414264973}
+  trackManager: {fileID: 118463707}
+  eoirCameraController: {fileID: 1638079334}
+  aisOverlayRoot: {fileID: 857207532}
+  radarOverlayRoot: {fileID: 857207532}
+  uncertaintyLegendPanel: {fileID: 0}
+  eoirSupportRoot: {fileID: 0}
+--- !u!4 &1324848169
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1324848167}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1333489008
 GameObject:
   m_ObjectHideFlags: 0
@@ -4605,10 +4668,15 @@ MonoBehaviour:
   confirmedContacts: 0
   totalContacts: 0
   taskStartTime: 0
-  taskActive: 0
+  taskActive: 1
   trackManager: {fileID: 118463707}
   autoStartTaskWhenTracksAvailable: 1
   statusResetDelaySeconds: 2
+  contactListRefreshIntervalSeconds: 0.5
+  scenario: 2
+  applyScenarioInstructionsOnStart: 1
+  scenarioController: {fileID: 1324848168}
+  scenarioDropdown: {fileID: 0}
 --- !u!1 &1344406359
 GameObject:
   m_ObjectHideFlags: 0
@@ -5309,7 +5377,7 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 92217146}
   m_HandleRect: {fileID: 92217145}
   m_Direction: 2
-  m_Value: 0.9999969
+  m_Value: 0.9998737
   m_Size: 0
   m_NumberOfSteps: 0
   m_OnValueChanged:
@@ -7934,3 +8002,4 @@ SceneRoots:
   - {fileID: 1216706051}
   - {fileID: 673619291}
   - {fileID: 1383963623}
+  - {fileID: 1324848169}

@@ -1,5 +1,6 @@
 using Data;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class StudyScenarioController : MonoBehaviour
 {
@@ -7,6 +8,17 @@ public class StudyScenarioController : MonoBehaviour
     public UIManager.StudyScenario selectedScenario = UIManager.StudyScenario.AISDeterministicBaseline;
     public bool applyOnStart = true;
     public bool clearTracksOnScenarioChange = true;
+
+    [Header("Unknown Contact Tasking")]
+    [Tooltip("In Scenarios 2 and 3, only these ship types are treated as unknown contacts")]
+    public bool useTypeBasedUnknownContacts = true;
+
+    [Tooltip("Ship types considered unknown contacts for operator identification tasks")]
+    public List<SimulatedShip.ShipType> unknownContactShipTypes = new List<SimulatedShip.ShipType>
+    {
+        SimulatedShip.ShipType.Cargo,
+        SimulatedShip.ShipType.Passenger
+    };
 
     [Header("References")]
     public UIManager uiManager;
@@ -54,11 +66,6 @@ public class StudyScenarioController : MonoBehaviour
         bool enableEOIR = scenario == UIManager.StudyScenario.RadarEOIRDegraded ||
                           scenario == UIManager.StudyScenario.FusedUncertaintyAware;
 
-        if (uiManager != null)
-        {
-            uiManager.ConfigureScenario(scenario);
-        }
-
         if (sensorSimulator != null)
         {
             sensorSimulator.aisEnabled = enableAIS;
@@ -94,21 +101,35 @@ public class StudyScenarioController : MonoBehaviour
         switch (scenario)
         {
             case UIManager.StudyScenario.AISDeterministicBaseline:
-                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.DeterministicIdentity;
+                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.AISDeterministicIdentity;
                 break;
 
             case UIManager.StudyScenario.RadarEOIRDegraded:
-                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.RadarAnonymous;
+                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.RadarUncertainIdentity;
                 break;
 
             case UIManager.StudyScenario.FusedUncertaintyAware:
-                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.FusedUncertaintyAware;
+                tracklabeler.ActiveDisplayMode = tracklabeler.LabelDisplayMode.FusedUncertaintyAwareIdentity;
                 break;
+        }
+
+        ConfigureUnknownContactFlags(scenario);
+
+        if (uiManager != null)
+        {
+            uiManager.ConfigureScenario(scenario);
         }
 
         if (clearTracksOnScenarioChange && trackManager != null)
         {
             trackManager.ClearAllTracks();
+        }
+
+        trackoverlayer overlay = FindFirstObjectByType<trackoverlayer>();
+        if (overlay != null)
+        {
+            overlay.onlyShowUnknownTargetsInIdentityTaskModes = false;
+            overlay.ClearAllLabels();
         }
 
         Debug.Log($"[StudyScenarioController] Applied scenario: {scenario} (AIS={enableAIS}, Radar={enableRadar}, EO/IR={enableEOIR})");
@@ -134,6 +155,29 @@ public class StudyScenarioController : MonoBehaviour
         if (eoirCameraController == null)
         {
             eoirCameraController = FindFirstObjectByType<EOIRCameraController>();
+        }
+    }
+
+    private void ConfigureUnknownContactFlags(UIManager.StudyScenario scenario)
+    {
+        if (!useTypeBasedUnknownContacts)
+        {
+            return;
+        }
+
+        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+        bool useUnknownTaskMode = scenario == UIManager.StudyScenario.RadarEOIRDegraded ||
+                                  scenario == UIManager.StudyScenario.FusedUncertaintyAware;
+
+        foreach (SimulatedShip ship in ships)
+        {
+            if (ship == null)
+            {
+                continue;
+            }
+
+            bool isTaskUnknown = useUnknownTaskMode && unknownContactShipTypes.Contains(ship.shipType);
+            ship.aisTransponder = !isTaskUnknown;
         }
     }
 }

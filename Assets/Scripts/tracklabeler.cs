@@ -15,11 +15,35 @@ public class tracklabeler : MonoBehaviour
 
     public TMP_Text labelText;
     public Track track;
+    public bool isConfirmed;
+    public Color confirmedLabelColor = Color.green;
+    public string confirmedTag = "CONFIRMED";
 
     [Header("Label Placement")]
-    public Camera viewCamera;
+    public Camera mainViewCamera;
+    public Camera eoirViewCamera;
     public float fallbackLabelHeight = 20f;
     public float extraHeightAboveShip = 60f;
+
+    [Header("Dual-Camera Billboard")]
+    [Tooltip("Blend orientation toward EO/IR when EO/IR is actively pointed at this overlay")]
+    public bool enableEOIRBillboardBlend = true;
+
+    [Tooltip("Minimum EO/IR forward dot product to consider camera pointing at this overlay")]
+    [Range(0.7f, 1f)]
+    public float eoirLookDotThreshold = 0.96f;
+
+    [Tooltip("Viewport tolerance around center for EO/IR engagement")]
+    [Range(0.01f, 0.5f)]
+    public float eoirViewportCenterTolerance = 0.2f;
+
+    [Tooltip("How much EO/IR affects billboard direction when engaged")]
+    [Range(0f, 1f)]
+    public float eoirBlendWeight = 0.5f;
+
+    [Header("Orientation Offset")]
+    [Tooltip("Euler rotation offset applied after billboard facing. Use X=180 to flip vertically.")]
+    public Vector3 billboardRotation = new Vector3(0f, 180f, 0f);
 
     [Header("Distance Scaling")]
     [Tooltip("Distance at which the label appears at its original size.")]
@@ -46,9 +70,19 @@ public class tracklabeler : MonoBehaviour
         }
     }
 
-    public void SetViewCamera(Camera cam)
+    public void SetViewMainCamera(Camera cam)
     {
-        viewCamera = cam;
+        mainViewCamera = cam;
+    }
+
+    public void SetViewEOIRCamera(Camera cam)
+    {
+        eoirViewCamera = cam;
+    }
+
+    public void SetConfirmedState(bool confirmed)
+    {
+        isConfirmed = confirmed;
     }
 
     void Update()
@@ -70,10 +104,24 @@ public class tracklabeler : MonoBehaviour
         }
 
         // Face the active aircraft view camera, not implicitly Camera.main.
-        Camera cam = viewCamera != null ? viewCamera : Camera.main;
+        Camera cam = mainViewCamera != null ? mainViewCamera : Camera.main;
         if (cam != null)
         {
-            transform.rotation = cam.transform.rotation;
+            Vector3 toMainCamera = (cam.transform.position - transform.position).normalized;
+            Vector3 lookDirection = toMainCamera;
+
+            if (enableEOIRBillboardBlend && ShouldBlendTowardEOIR())
+            {
+                Vector3 toEOIRCamera = (eoirViewCamera.transform.position - transform.position).normalized;
+                float weight = Mathf.Clamp01(eoirBlendWeight);
+                lookDirection = Vector3.Slerp(toMainCamera, toEOIRCamera, weight).normalized;
+            }
+
+            if (lookDirection.sqrMagnitude > 0.0001f)
+            {
+                transform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
+                transform.rotation *= Quaternion.Euler(billboardRotation);
+            }
 
             // Scale label so it appears the same angular size regardless of distance.
             float dist = Vector3.Distance(cam.transform.position, transform.position);
@@ -100,6 +148,36 @@ public class tracklabeler : MonoBehaviour
                 return;
             }
         }
+    }
+
+    private bool ShouldBlendTowardEOIR()
+    {
+        if (eoirViewCamera == null)
+        {
+            return false;
+        }
+
+        Vector3 toLabel = transform.position - eoirViewCamera.transform.position;
+        if (toLabel.sqrMagnitude < 0.0001f)
+        {
+            return false;
+        }
+
+        float forwardDot = Vector3.Dot(eoirViewCamera.transform.forward, toLabel.normalized);
+        if (forwardDot < eoirLookDotThreshold)
+        {
+            return false;
+        }
+
+        Vector3 vp = eoirViewCamera.WorldToViewportPoint(transform.position);
+        if (vp.z <= 0f)
+        {
+            return false;
+        }
+
+        float dx = Mathf.Abs(vp.x - 0.5f);
+        float dy = Mathf.Abs(vp.y - 0.5f);
+        return dx <= eoirViewportCenterTolerance && dy <= eoirViewportCenterTolerance;
     }
 
     private float GetShipHeight()
@@ -137,15 +215,15 @@ public class tracklabeler : MonoBehaviour
                 string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
                     ? track.shipData.name
                     : track.trackid;
-                labelText.text = identity;
-                labelText.color = Color.white;
+                labelText.text = isConfirmed ? $"{identity}\\n[{confirmedTag}]" : identity;
+                labelText.color = isConfirmed ? confirmedLabelColor : Color.white;
                 break;
             }
 
             case LabelDisplayMode.RadarUncertainIdentity:
             {
-                labelText.text = "RADAR CONTACT";
-                labelText.color = Color.yellow;
+                labelText.text = isConfirmed ? $"RADAR CONTACT\\n[{confirmedTag}]" : "RADAR CONTACT";
+                labelText.color = isConfirmed ? confirmedLabelColor : Color.yellow;
                 break;
             }
 
@@ -154,8 +232,9 @@ public class tracklabeler : MonoBehaviour
                 string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
                     ? track.shipData.name
                     : "UNKNOWN";
-                labelText.text = $"{identity}\\nConf: {track.identityConfidence}\\nU: {track.positionUncertainty:F0} m";
-                labelText.color = GetConfidenceColor(track.identityConfidence);
+                string baseLabel = $"{identity}\\nConf: {track.identityConfidence}\\nU: {track.positionUncertainty:F0} m";
+                labelText.text = isConfirmed ? $"{baseLabel}\\n[{confirmedTag}]" : baseLabel;
+                labelText.color = isConfirmed ? confirmedLabelColor : GetConfidenceColor(track.identityConfidence);
                 break;
             }
         }

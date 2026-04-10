@@ -11,7 +11,7 @@ using System.Numerics;
 using Color = UnityEngine.Color;
 using Debug = UnityEngine.Debug;
 using Vector3 = UnityEngine.Vector3;
-
+using Quaternion = UnityEngine.Quaternion;
 
 public class UIManager : MonoBehaviour
 {
@@ -61,19 +61,30 @@ public class UIManager : MonoBehaviour
     public TrackManager trackManager;
     public bool autoStartTaskWhenTracksAvailable = true;
     public float statusResetDelaySeconds = 2f;
+    public float contactListRefreshIntervalSeconds = 0.5f;
 
-    [Header("Study Scenario")]
+    [Header("Scenario Settings")]
     public StudyScenario scenario = StudyScenario.RadarEOIRDegraded;
     public bool applyScenarioInstructionsOnStart = true;
+    public StudyScenarioController scenarioController;
+    public TMP_Dropdown scenarioDropdown;
 
     private Dictionary<string, GameObject> contactListItems = new Dictionary<string, GameObject>();
     private HashSet<string> confirmedTrackIds = new HashSet<string>();
+    private HashSet<string> requiredTargetTrackIds = new HashSet<string>();
     private Coroutine resetStatusCoroutine;
+    private float nextContactRefreshTime;
 
     void Start()
     {
+        if (scenarioController == null)
+        {
+            scenarioController = FindFirstObjectByType<StudyScenarioController>();
+        }
+
         // Initialize UI by setting task instructions and setting contact status
         InitializeUI();
+        InitializeScenarioSelectorUI();
 
         if (trackManager == null)
         {
@@ -85,6 +96,8 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        RefreshContactList();
+
         if (!taskActive)
         {
             TryAutoStartTask();
@@ -114,6 +127,37 @@ public class UIManager : MonoBehaviour
     {
         scenario = selectedScenario;
         ApplyScenarioInstructions();
+        RefreshRequiredTargetsFromScene();
+    }
+
+    public bool IsTrackConfirmed(string trackId)
+    {
+        if (string.IsNullOrEmpty(trackId))
+        {
+            return false;
+        }
+
+        return confirmedTrackIds.Contains(trackId);
+    }
+
+    public bool IsShipConfirmed(SimulatedShip ship)
+    {
+        if (ship == null)
+        {
+            return false;
+        }
+
+        if (!string.IsNullOrEmpty(ship.mmsi) && confirmedTrackIds.Contains($"AIS_{ship.mmsi}"))
+        {
+            return true;
+        }
+
+        if (!string.IsNullOrEmpty(ship.shipName) && confirmedTrackIds.Contains(ship.shipName))
+        {
+            return true;
+        }
+
+        return false;
     }
 
     public bool IsEOIRAvailableForCurrentScenario()
@@ -148,16 +192,31 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void TryAutoStartTask()
+    private void InitializeScenarioSelectorUI()
     {
-        if (taskActive || !autoStartTaskWhenTracksAvailable)
+        if (scenarioDropdown == null)
         {
             return;
         }
 
-        if (radarContacts != null && radarContacts.Count > 0)
+        if (scenarioDropdown.options == null || scenarioDropdown.options.Count == 0)
         {
-            StartTask(new List<Track>(radarContacts));
+            scenarioDropdown.ClearOptions();
+            scenarioDropdown.AddOptions(new List<string>
+            {
+                "Scenario 1 - AIS Baseline",
+                "Scenario 2 - Radar + EO/IR",
+                "Scenario 3 - Fused + Uncertainty"
+            });
+        }
+
+        scenarioDropdown.SetValueWithoutNotify(Mathf.Clamp(((int)scenario) - 1, 0, 2));
+    }
+
+    private void TryAutoStartTask()
+    {
+        if (taskActive || !autoStartTaskWhenTracksAvailable)
+        {
             return;
         }
 
@@ -166,6 +225,14 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        List<Track> scenarioContacts = GetScenarioContactsFromTrackManager();
+        if (scenarioContacts != null && scenarioContacts.Count > 0)
+        {
+            StartTask(scenarioContacts);
+            return;
+        }
+
+        // Fallback to all active tracks so task/list still starts even if sensor-tag filtering has not stabilized yet.
         List<Track> activeTracks = trackManager.GetActiveTracks();
         if (activeTracks != null && activeTracks.Count > 0)
         {
@@ -200,6 +267,8 @@ public class UIManager : MonoBehaviour
         confirmedTrackIds.Clear();
         radarContacts = contacts;
         totalContacts = radarContacts.Count;
+        RefreshRequiredTargetsFromScene();
+        nextContactRefreshTime = 0f;
 
         // Need a function to populate contact list panel with current contacts
         PopulateContactList();
@@ -336,21 +405,43 @@ public class UIManager : MonoBehaviour
 
     public void UpdateProgress()
     {
+        int confirmedTargetCount = GetConfirmedRequiredTargetCount();
+        int requiredTargetCount = requiredTargetTrackIds.Count;
+        bool useTargetCompletion = ShouldUseTargetCompletion();
+
         if (contactsConfirmedText != null)
         {
-            contactsConfirmedText.text = $"Confirmed: {confirmedContacts} / {totalContacts}";
+            contactsConfirmedText.text = useTargetCompletion
+                ? $"Targets Confirmed: {confirmedTargetCount} / {requiredTargetCount}"
+                : $"Confirmed: {confirmedContacts} / {totalContacts}";
         }
         
-        if (progressBar != null && totalContacts > 0)
+        if (progressBar != null)
         {
-            progressBar.value = (float)confirmedContacts / totalContacts;
+            if (useTargetCompletion && requiredTargetCount > 0)
+            {
+                progressBar.value = (float)confirmedTargetCount / requiredTargetCount;
+            }
+            else if (totalContacts > 0)
+            {
+                progressBar.value = (float)confirmedContacts / totalContacts;
+            }
         }
 
         // Check if task is complete and update status panel accordingly
-        if (taskActive && totalContacts > 0 && confirmedContacts >= totalContacts)
+        if (taskActive)
         {
-            // Need a function to set status panel to set task as complete
-            CompleteTask();
+            if (useTargetCompletion)
+            {
+                if (requiredTargetCount > 0 && confirmedTargetCount >= requiredTargetCount)
+                {
+                    CompleteTask();
+                }
+            }
+            else if (totalContacts > 0 && confirmedContacts >= totalContacts)
+            {
+                CompleteTask();
+            }
         }
     }
 
@@ -364,7 +455,10 @@ public class UIManager : MonoBehaviour
         int seconds = Mathf.FloorToInt(completionTime % 60f);
 
         SetConfirmationStatus("TASK COMPLETE",
-        $"All contacts confirmed in {minutes:00}:{seconds:00}", confirmedColor);
+        ShouldUseTargetCompletion()
+            ? $"All unknown target contacts confirmed in {minutes:00}:{seconds:00}"
+            : $"All contacts confirmed in {minutes:00}:{seconds:00}",
+        confirmedColor);
 
         Debug.Log($"[UIManager] Task complete in {minutes:00}:{seconds:00}. Contacts confirmed: {confirmedContacts}/{totalContacts}");
     }
@@ -445,4 +539,105 @@ public class UIManager : MonoBehaviour
         resetStatusCoroutine = null;
         ResetStatus();
     }
+
+    private void RefreshRequiredTargetsFromScene()
+    {
+        requiredTargetTrackIds.Clear();
+
+        if (scenario == StudyScenario.AISDeterministicBaseline)
+        {
+            return;
+        }
+
+        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+        foreach (SimulatedShip ship in ships)
+        {
+            if (ship == null || ship.aisTransponder)
+            {
+                continue;
+            }
+
+            if (!string.IsNullOrEmpty(ship.mmsi))
+            {
+                requiredTargetTrackIds.Add($"AIS_{ship.mmsi}");
+            }
+            else if (!string.IsNullOrEmpty(ship.shipName))
+            {
+                requiredTargetTrackIds.Add(ship.shipName);
+            }
+        }
+    }
+
+    private int GetConfirmedRequiredTargetCount()
+    {
+        int count = 0;
+        foreach (string requiredId in requiredTargetTrackIds)
+        {
+            if (confirmedTrackIds.Contains(requiredId))
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private bool ShouldUseTargetCompletion()
+    {
+        return scenario != StudyScenario.AISDeterministicBaseline && requiredTargetTrackIds.Count > 0;
+    }
+
+    private void RefreshContactList()
+    {
+        if (trackManager == null)
+        {
+            return;
+        }
+
+        if (Time.time < nextContactRefreshTime)
+        {
+            return;
+        }
+
+        nextContactRefreshTime = Time.time + Mathf.Max(0.1f, contactListRefreshIntervalSeconds);
+
+        List<Track> latestContacts = GetScenarioContactsFromTrackManager();
+        radarContacts = latestContacts;
+        totalContacts = radarContacts.Count;
+        PopulateContactList();
+    }
+
+    private List<Track> GetScenarioContactsFromTrackManager()
+    {
+        if (trackManager == null)
+        {
+            return new List<Track>();
+        }
+
+        switch (scenario)
+        {
+            case StudyScenario.AISDeterministicBaseline:
+                return trackManager.GetTracksBySensorType(SensorType.AIS);
+
+            case StudyScenario.RadarEOIRDegraded:
+            {
+                List<Track> radarTracks = trackManager.GetTracksBySensorType(SensorType.Radar);
+                if (radarTracks != null && radarTracks.Count > 0)
+                {
+                    return radarTracks;
+                }
+
+                // Fallback: show active tracks while radar-only set is still warming up.
+                return trackManager.GetActiveTracks();
+            }
+
+            case StudyScenario.FusedUncertaintyAware:
+                // Fused mode shows the complete current track picture.
+                return trackManager.GetActiveTracks();
+
+            default:
+                return trackManager.GetActiveTracks();
+        }
+    }
+
 }

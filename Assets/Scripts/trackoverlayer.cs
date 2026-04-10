@@ -9,12 +9,28 @@ public class trackoverlayer : MonoBehaviour
     public TrackManager trackManager;
     public GameObject labelPrefab;
     public Camera overlayCamera;
-    public float shipAssociationDistanceThreshold = 300f;
+    public float shipAssociationDistanceThreshold = 1200f;
+    public float maxLabelTimeoutSeconds = 1.5f;
+    public float maxTrackAgeSeconds = 4f;
+    public bool onlyShowUnknownTargetsInIdentityTaskModes = false;
 
     private Dictionary<string, GameObject> activeLabels = new Dictionary<string, GameObject>();
+    private Dictionary<string, float> labelLastSeenTime = new Dictionary<string, float>();
+    private UIManager uiManager;
+    private EOIRCameraController eoirController;
 
     void Update()
     {
+        if (uiManager == null)
+        {
+            uiManager = FindFirstObjectByType<UIManager>();
+        }
+
+        if (eoirController == null)
+        {
+            eoirController = FindFirstObjectByType<EOIRCameraController>();
+        }
+
         if (trackManager == null) return;
         if (labelPrefab == null)
         {
@@ -33,8 +49,22 @@ public class trackoverlayer : MonoBehaviour
         {
             if (track == null || string.IsNullOrEmpty(track.trackid)) continue;
 
-            string labelKey = GetStableLabelKey(track);
+            if ((DateTime.UtcNow - track.timeStamp).TotalSeconds > Mathf.Max(0.1f, maxTrackAgeSeconds))
+            {
+                continue;
+            }
+
+            SimulatedShip associatedShip = FindBestShipForTrack(track);
+            if (!ShouldRenderTrack(track, associatedShip))
+            {
+                continue;
+            }
+
+            string labelKey = GetStableLabelKey(track, associatedShip);
             currentLabelKeys.Add(labelKey);
+            labelLastSeenTime[labelKey] = Time.time;
+
+            bool isConfirmed = IsOverlayConfirmed(track, associatedShip);
 
             if (!activeLabels.ContainsKey(labelKey))
             {
@@ -48,7 +78,9 @@ public class trackoverlayer : MonoBehaviour
                     continue;
                 }
                 label.track = track;
-                label.SetViewCamera(overlayCamera);
+                label.SetViewMainCamera(overlayCamera);
+                label.SetViewEOIRCamera(eoirController != null ? eoirController.eoirCamera : null);
+                label.SetConfirmedState(isConfirmed);
                 activeLabels[labelKey] = labelObj;
             }
             else
@@ -56,6 +88,7 @@ public class trackoverlayer : MonoBehaviour
                 if (activeLabels[labelKey] == null)
                 {
                     activeLabels.Remove(labelKey);
+                    labelLastSeenTime.Remove(labelKey);
                     continue;
                 }
 
@@ -69,7 +102,9 @@ public class trackoverlayer : MonoBehaviour
                     continue;
                 }
                 label.track = track;
-                label.SetViewCamera(overlayCamera);
+                label.SetViewMainCamera(overlayCamera);
+                label.SetViewEOIRCamera(eoirController != null ? eoirController.eoirCamera : null);
+                label.SetConfirmedState(isConfirmed);
             }
         }
 
@@ -83,13 +118,84 @@ public class trackoverlayer : MonoBehaviour
                 tracksToRemove.Add(entry.Key);
             }
         }
+
+        float now = Time.time;
+        foreach (var entry in activeLabels)
+        {
+            if (tracksToRemove.Contains(entry.Key))
+            {
+                continue;
+            }
+
+            if (!labelLastSeenTime.TryGetValue(entry.Key, out float lastSeen))
+            {
+                continue;
+            }
+
+            if (now - lastSeen > Mathf.Max(0.1f, maxLabelTimeoutSeconds))
+            {
+                if (entry.Value != null)
+                {
+                    Destroy(entry.Value);
+                }
+                tracksToRemove.Add(entry.Key);
+            }
+        }
+
         foreach (var trackId in tracksToRemove)
         {
             activeLabels.Remove(trackId);
+            labelLastSeenTime.Remove(trackId);
         }
     }
 
-    private string GetStableLabelKey(Track track)
+    public void ClearAllLabels()
+    {
+        foreach (var label in activeLabels.Values)
+        {
+            if (label != null)
+            {
+                Destroy(label);
+            }
+        }
+
+        activeLabels.Clear();
+        labelLastSeenTime.Clear();
+    }
+
+    private bool ShouldRenderTrack(Track track, SimulatedShip associatedShip)
+    {
+        if (!onlyShowUnknownTargetsInIdentityTaskModes)
+        {
+            return true;
+        }
+
+        if (tracklabeler.ActiveDisplayMode != tracklabeler.LabelDisplayMode.RadarUncertainIdentity &&
+            tracklabeler.ActiveDisplayMode != tracklabeler.LabelDisplayMode.FusedUncertaintyAwareIdentity)
+        {
+            return true;
+        }
+
+        // In identity-task scenarios, only render overlays for the unknown contacts.
+        return associatedShip != null && !associatedShip.aisTransponder;
+    }
+
+    private bool IsOverlayConfirmed(Track track, SimulatedShip associatedShip)
+    {
+        if (uiManager == null)
+        {
+            return false;
+        }
+
+        if (uiManager.IsTrackConfirmed(track.trackid))
+        {
+            return true;
+        }
+
+        return uiManager.IsShipConfirmed(associatedShip);
+    }
+
+    private string GetStableLabelKey(Track track, SimulatedShip associatedShip)
     {
         if (track.shipData != null)
         {
@@ -104,10 +210,9 @@ public class trackoverlayer : MonoBehaviour
             }
         }
 
-        SimulatedShip ship = FindBestShipForTrack(track);
-        if (ship != null)
+        if (associatedShip != null)
         {
-            return "SHIP_" + ship.GetInstanceID();
+            return "SHIP_" + associatedShip.GetInstanceID();
         }
 
         return "TRACK_" + track.trackid;
