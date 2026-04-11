@@ -309,9 +309,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::tracklabeler
   labelText: {fileID: 1202907857811509170}
-  viewCamera: {fileID: 0}
+  isConfirmed: 0
+  confirmedLabelColor: {r: 0, g: 1, b: 0, a: 1}
+  confirmedTag: CONFIRMED
+  mainViewCamera: {fileID: 0}
+  eoirViewCamera: {fileID: 0}
   fallbackLabelHeight: 20
   extraHeightAboveShip: 40
+  enableEOIRBillboardBlend: 1
+  eoirLookDotThreshold: 0.96
+  eoirViewportCenterTolerance: 0.2
+  eoirBlendWeight: 0.5
+  billboardRotation: {x: 0, y: 180, z: 0}
+  forceUprightBillboard: 1
   referenceDistance: 1000
   minScale: 0.5
   maxScale: 200

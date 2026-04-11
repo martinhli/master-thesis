@@ -13,9 +13,11 @@ public class trackoverlayer : MonoBehaviour
     public float maxLabelTimeoutSeconds = 1.5f;
     public float maxTrackAgeSeconds = 4f;
     public bool onlyShowUnknownTargetsInIdentityTaskModes = false;
+    public bool hideConfirmedLabelsInIdentityScenarios = true;
 
     private Dictionary<string, GameObject> activeLabels = new Dictionary<string, GameObject>();
     private Dictionary<string, float> labelLastSeenTime = new Dictionary<string, float>();
+    private HashSet<string> confirmedLabelKeys = new HashSet<string>();
     private UIManager uiManager;
     private EOIRCameraController eoirController;
 
@@ -38,15 +40,23 @@ public class trackoverlayer : MonoBehaviour
             return;
         }
 
-        // Get current confirmed tracks from the track manager
-        var confirmedTracks = trackManager.GetConfirmedTracks();
-        if (confirmedTracks == null) return;
+        List<Track> tracksToRender = GetTracksToRender();
+        if (tracksToRender == null) return;
+
+        Dictionary<string, Track> bestTrackPerLabelKey = BuildRenderableTrackMap(tracksToRender);
+        if (bestTrackPerLabelKey.Count == 0)
+        {
+            return;
+        }
 
         // Update existing labels and create new ones for new tracks
         HashSet<string> currentLabelKeys = new HashSet<string>();
 
-        foreach (var track in confirmedTracks)
+        foreach (var kvp in bestTrackPerLabelKey)
         {
+            string labelKey = kvp.Key;
+            Track track = kvp.Value;
+
             if (track == null || string.IsNullOrEmpty(track.trackid)) continue;
 
             if ((DateTime.UtcNow - track.timeStamp).TotalSeconds > Mathf.Max(0.1f, maxTrackAgeSeconds))
@@ -60,11 +70,15 @@ public class trackoverlayer : MonoBehaviour
                 continue;
             }
 
-            string labelKey = GetStableLabelKey(track, associatedShip);
             currentLabelKeys.Add(labelKey);
             labelLastSeenTime[labelKey] = Time.time;
 
-            bool isConfirmed = IsOverlayConfirmed(track, associatedShip);
+            bool isConfirmedNow = IsOverlayConfirmed(track, associatedShip);
+            if (isConfirmedNow)
+            {
+                confirmedLabelKeys.Add(labelKey);
+            }
+            bool isConfirmed = confirmedLabelKeys.Contains(labelKey);
 
             if (!activeLabels.ContainsKey(labelKey))
             {
@@ -108,7 +122,7 @@ public class trackoverlayer : MonoBehaviour
             }
         }
 
-        // Remove labels for tracks that are no longer confirmed
+        // Remove labels for tracks that are no longer part of current scenario track set
         List<string> tracksToRemove = new List<string>();
         foreach (var entry in activeLabels)
         {
@@ -146,6 +160,7 @@ public class trackoverlayer : MonoBehaviour
         {
             activeLabels.Remove(trackId);
             labelLastSeenTime.Remove(trackId);
+            confirmedLabelKeys.Remove(trackId);
         }
     }
 
@@ -161,6 +176,102 @@ public class trackoverlayer : MonoBehaviour
 
         activeLabels.Clear();
         labelLastSeenTime.Clear();
+        confirmedLabelKeys.Clear();
+    }
+
+    private List<Track> GetTracksToRender()
+    {
+        if (uiManager != null &&
+            (uiManager.scenario == UIManager.StudyScenario.RadarEOIRDegraded ||
+             uiManager.scenario == UIManager.StudyScenario.FusedUncertaintyAware))
+        {
+            return trackManager.GetActiveTracks();
+        }
+
+        return trackManager.GetConfirmedTracks();
+    }
+
+    private Dictionary<string, Track> BuildRenderableTrackMap(List<Track> tracks)
+    {
+        Dictionary<string, Track> result = new Dictionary<string, Track>();
+
+        foreach (Track track in tracks)
+        {
+            if (track == null || string.IsNullOrEmpty(track.trackid))
+            {
+                continue;
+            }
+
+            SimulatedShip associatedShip = FindBestShipForTrack(track);
+            if (!ShouldRenderTrack(track, associatedShip))
+            {
+                continue;
+            }
+
+            string key = GetStableLabelKey(track, associatedShip);
+            if (!result.ContainsKey(key))
+            {
+                result[key] = track;
+                continue;
+            }
+
+            Track existing = result[key];
+            if (IsPreferredLabelTrack(track, existing))
+            {
+                result[key] = track;
+            }
+        }
+
+        return result;
+    }
+
+    private bool IsPreferredLabelTrack(Track candidate, Track current)
+    {
+        if (candidate == null)
+        {
+            return false;
+        }
+
+        if (current == null)
+        {
+            return true;
+        }
+
+        int candidatePriority = GetDisplayIdPriority(candidate);
+        int currentPriority = GetDisplayIdPriority(current);
+        if (candidatePriority != currentPriority)
+        {
+            return candidatePriority > currentPriority;
+        }
+
+        // If priority is equal, prefer the freshest track for better spatial accuracy.
+        return candidate.timeStamp > current.timeStamp;
+    }
+
+    private int GetDisplayIdPriority(Track track)
+    {
+        if (track == null || track.sources == null)
+        {
+            return 0;
+        }
+
+        // Prefer radar IDs in scene labels to match the contact list workflow.
+        if (track.sources.hasSensor(SensorType.Radar))
+        {
+            return 3;
+        }
+
+        if (track.sources.hasSensor(SensorType.AIS))
+        {
+            return 2;
+        }
+
+        if (track.sources.hasSensor(SensorType.EOIR))
+        {
+            return 1;
+        }
+
+        return 0;
     }
 
     private bool ShouldRenderTrack(Track track, SimulatedShip associatedShip)
@@ -197,19 +308,6 @@ public class trackoverlayer : MonoBehaviour
 
     private string GetStableLabelKey(Track track, SimulatedShip associatedShip)
     {
-        if (track.shipData != null)
-        {
-            if (!string.IsNullOrEmpty(track.shipData.mmsi))
-            {
-                return "MMSI_" + track.shipData.mmsi;
-            }
-
-            if (!string.IsNullOrEmpty(track.shipData.name))
-            {
-                return "NAME_" + track.shipData.name;
-            }
-        }
-
         if (associatedShip != null)
         {
             return "SHIP_" + associatedShip.GetInstanceID();

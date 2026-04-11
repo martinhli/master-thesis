@@ -35,6 +35,9 @@ public class UIManager : MonoBehaviour
     [Header("Contact List")]
     public Transform contactListContent;
     public GameObject contactListItemPrefab;
+    public float contactItemSpacing = 12f;
+    public float contactItemPreferredHeight = 90f;
+    public bool enforceContactItemLayoutElement = true;
 
     [Header("Confirmation Status")]
     public TextMeshProUGUI confirmationStatusText;
@@ -62,6 +65,7 @@ public class UIManager : MonoBehaviour
     public bool autoStartTaskWhenTracksAvailable = true;
     public float statusResetDelaySeconds = 2f;
     public float contactListRefreshIntervalSeconds = 0.5f;
+    public float contactShipAssociationDistanceThreshold = 1200f;
 
     [Header("Scenario Settings")]
     public StudyScenario scenario = StudyScenario.RadarEOIRDegraded;
@@ -74,6 +78,7 @@ public class UIManager : MonoBehaviour
     private HashSet<string> requiredTargetTrackIds = new HashSet<string>();
     private Coroutine resetStatusCoroutine;
     private float nextContactRefreshTime;
+    private bool taskCompletedLock;
 
     void Start()
     {
@@ -85,11 +90,15 @@ public class UIManager : MonoBehaviour
         // Initialize UI by setting task instructions and setting contact status
         InitializeUI();
         InitializeScenarioSelectorUI();
+        HookScenarioDropdown();
 
         if (trackManager == null)
         {
             trackManager = FindFirstObjectByType<TrackManager>();
         }
+
+        ApplyContactListLayoutSettings();
+
         // If auto-start is enabled, check for existing tracks and start task if any are found
         TryAutoStartTask();
     }
@@ -126,6 +135,7 @@ public class UIManager : MonoBehaviour
     public void ConfigureScenario(StudyScenario selectedScenario)
     {
         scenario = selectedScenario;
+        taskCompletedLock = false;
         ApplyScenarioInstructions();
         RefreshRequiredTargetsFromScene();
     }
@@ -163,6 +173,58 @@ public class UIManager : MonoBehaviour
     public bool IsEOIRAvailableForCurrentScenario()
     {
         return scenario != StudyScenario.AISDeterministicBaseline;
+    }
+
+    private bool IsKnownRadarContact(Track track)
+    {
+        if (track == null)
+        {
+            return false;
+        }
+
+        if (IsTrackConfirmed(track.trackid))
+        {
+            return true;
+        }
+
+        SimulatedShip ship = FindBestShipForTrack(track);
+        if (ship != null)
+        {
+            return ship.aisTransponder;
+        }
+
+        // If we cannot match to a scene ship, keep a conservative fallback.
+        return track.shipData != null && !string.IsNullOrEmpty(track.shipData.name);
+    }
+
+    private SimulatedShip FindBestShipForTrack(Track track)
+    {
+        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+        SimulatedShip bestShip = null;
+        float bestDistance = float.MaxValue;
+
+        for (int i = 0; i < ships.Length; i++)
+        {
+            SimulatedShip ship = ships[i];
+            if (ship == null)
+            {
+                continue;
+            }
+
+            float distance = Vector3.Distance(track.position, ship.transform.position);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestShip = ship;
+            }
+        }
+
+        if (bestShip != null && bestDistance <= Mathf.Max(0f, contactShipAssociationDistanceThreshold))
+        {
+            return bestShip;
+        }
+
+        return null;
     }
 
     private void ApplyScenarioInstructions()
@@ -213,9 +275,33 @@ public class UIManager : MonoBehaviour
         scenarioDropdown.SetValueWithoutNotify(Mathf.Clamp(((int)scenario) - 1, 0, 2));
     }
 
+    private void HookScenarioDropdown()
+    {
+        if (scenarioDropdown == null)
+        {
+            return;
+        }
+
+        scenarioDropdown.onValueChanged.RemoveListener(OnScenarioDropdownChanged);
+        scenarioDropdown.onValueChanged.AddListener(OnScenarioDropdownChanged);
+    }
+
+    public void OnScenarioDropdownChanged(int index)
+    {
+        StudyScenario selectedScenario = (StudyScenario)Mathf.Clamp(index + 1, 1, 3);
+
+        if (scenarioController != null)
+        {
+            scenarioController.ApplyScenario(selectedScenario);
+            return;
+        }
+
+        ConfigureScenario(selectedScenario);
+    }
+
     private void TryAutoStartTask()
     {
-        if (taskActive || !autoStartTaskWhenTracksAvailable)
+        if (taskActive || taskCompletedLock || !autoStartTaskWhenTracksAvailable)
         {
             return;
         }
@@ -242,6 +328,11 @@ public class UIManager : MonoBehaviour
 
     private void EnsureTaskStarted()
     {
+        if (taskCompletedLock)
+        {
+            return;
+        }
+
         if (taskActive)
         {
             return;
@@ -261,6 +352,7 @@ public class UIManager : MonoBehaviour
 
     public void StartTask(List<Track> contacts)
     {
+        taskCompletedLock = false;
         taskActive = true;
         taskStartTime = Time.time;
         confirmedContacts = 0;
@@ -312,6 +404,8 @@ public class UIManager : MonoBehaviour
 
     public void PopulateContactList()
     {
+        ApplyContactListLayoutSettings();
+
         // Clear existing contact list items
         foreach (var item in contactListItems.Values)
         {
@@ -319,13 +413,50 @@ public class UIManager : MonoBehaviour
         }
         contactListItems.Clear();
 
-        // Create new contact list items based on radarContacts
-        foreach (Track track in radarContacts)
+        // Show newest contacts first so operators can quickly map fresh labels to list entries.
+        List<Track> orderedContacts = GetContactsSortedNewestFirst(radarContacts);
+        foreach (Track track in orderedContacts)
         {
-
-            // Need a function to create a contact list item
             CreateContactListItem(track);
         }
+    }
+
+    private List<Track> GetContactsSortedNewestFirst(List<Track> contacts)
+    {
+        List<Track> result = new List<Track>();
+        if (contacts == null || contacts.Count == 0)
+        {
+            return result;
+        }
+
+        for (int i = 0; i < contacts.Count; i++)
+        {
+            if (contacts[i] != null)
+            {
+                result.Add(contacts[i]);
+            }
+        }
+
+        result.Sort((a, b) =>
+        {
+            int byStatus = GetContactSortPriority(a).CompareTo(GetContactSortPriority(b));
+            if (byStatus != 0)
+            {
+                return byStatus;
+            }
+
+            int byTime = b.timeStamp.CompareTo(a.timeStamp);
+            if (byTime != 0)
+            {
+                return byTime;
+            }
+
+            string aId = a.trackid ?? string.Empty;
+            string bId = b.trackid ?? string.Empty;
+            return string.CompareOrdinal(aId, bId);
+        });
+
+        return result;
     }
 
     public void CreateContactListItem(Track track)
@@ -335,13 +466,30 @@ public class UIManager : MonoBehaviour
             GameObject item = Instantiate(contactListItemPrefab, contactListContent);
             item.name = $"Contact_{track.trackid}";
 
+            if (enforceContactItemLayoutElement)
+            {
+                LayoutElement element = item.GetComponent<LayoutElement>();
+                if (element == null)
+                {
+                    element = item.AddComponent<LayoutElement>();
+                }
+
+                float rowHeight = Mathf.Max(20f, contactItemPreferredHeight);
+                element.minHeight = rowHeight;
+                element.preferredHeight = rowHeight;
+                element.flexibleHeight = 0f;
+            }
+
             // Set contact details in the UI elements of the item
             TextMeshProUGUI idText = item.transform.Find("ContactIDText")?.GetComponent<TextMeshProUGUI>();
             TextMeshProUGUI distText = item.transform.Find("DistanceText")?.GetComponent<TextMeshProUGUI>();
             TextMeshProUGUI bearingText = item.transform.Find("BearingText")?.GetComponent<TextMeshProUGUI>();
+            TextMeshProUGUI statusText = item.transform.Find("StatusText")?.GetComponent<TextMeshProUGUI>();
             Image statusIcon = item.transform.Find("StatusIcon")?.GetComponent<Image>();
 
-            if (idText != null) idText.text = track.trackid;
+            bool isKnown = IsKnownRadarContact(track);
+
+            if (idText != null) idText.text = GetRadarId(track);
             if (distText != null)
             {
                 float distance = Vector3.Distance(Vector3.zero, track.position) / 1000f;;
@@ -353,10 +501,66 @@ public class UIManager : MonoBehaviour
                 if (bearing < 0) bearing += 360f;
                 bearingText.text = $"{bearing:F0}°";
             }
+            if (statusText != null)
+            {
+                statusText.text = isKnown ? "KNOWN" : "UNKNOWN";
+                statusText.color = isKnown ? Color.green : Color.yellow;
+            }
             if (statusIcon != null) statusIcon.color = Color.yellow;
 
             contactListItems[track.trackid] = item;
         }
+    }
+
+    private string GetRadarId(Track track)
+    {
+        if (track != null && !string.IsNullOrEmpty(track.trackid))
+        {
+            return track.trackid;
+        }
+
+        return "RADAR_UNKNOWN";
+    }
+
+    private int GetContactSortPriority(Track track)
+    {
+        if (track == null)
+        {
+            return 3;
+        }
+
+        bool isConfirmed = IsTrackConfirmed(track.trackid);
+        bool isUnknown = !IsKnownRadarContact(track);
+
+        if (!isConfirmed && isUnknown)
+        {
+            return 0;
+        }
+
+        if (!isConfirmed && !isUnknown)
+        {
+            return 1;
+        }
+
+        return 2;
+    }
+
+    private void ApplyContactListLayoutSettings()
+    {
+        if (contactListContent == null)
+        {
+            return;
+        }
+
+        VerticalLayoutGroup layout = contactListContent.GetComponent<VerticalLayoutGroup>();
+        if (layout == null)
+        {
+            return;
+        }
+
+        layout.spacing = Mathf.Max(0f, contactItemSpacing);
+        layout.childControlHeight = true;
+        layout.childForceExpandHeight = false;
     }
 
     public void UpdateContactStatus(string trackID, bool confirmed)
@@ -370,11 +574,18 @@ public class UIManager : MonoBehaviour
         {
             // Update the status icon color for the contact list item
             GameObject item = contactListItems[trackID];
+            TextMeshProUGUI statusText = item.transform.Find("StatusText")?.GetComponent<TextMeshProUGUI>();
             Image statusIcon = item.transform.Find("StatusIcon")?.GetComponent<Image>();
 
             if (statusIcon != null)
             {
                 statusIcon.color = confirmed ? Color.green : Color.red;
+            }
+
+            if (statusText != null)
+            {
+                statusText.text = confirmed ? "KNOWN" : "UNKNOWN";
+                statusText.color = confirmed ? Color.green : Color.yellow;
             }
         }
 
@@ -385,6 +596,9 @@ public class UIManager : MonoBehaviour
             {
                 confirmedContacts = confirmedTrackIds.Count;
             }
+
+            // Rebuild once so the newly confirmed contact moves out of the unknown-first section.
+            PopulateContactList();
         }
 
 
@@ -449,6 +663,7 @@ public class UIManager : MonoBehaviour
     {
         // Set task as inactive, record completion time, and update status panel to show completion
         taskActive = false;
+        taskCompletedLock = true;
 
         float completionTime = Time.time - taskStartTime;
         int minutes = Mathf.FloorToInt(completionTime / 60f);
@@ -617,10 +832,12 @@ public class UIManager : MonoBehaviour
         switch (scenario)
         {
             case StudyScenario.AISDeterministicBaseline:
+                // AIS-only mode shows only tracks with AIS data, which are the ones the user can confirm in this scenario.
                 return trackManager.GetTracksBySensorType(SensorType.AIS);
 
             case StudyScenario.RadarEOIRDegraded:
             {
+                // Radar+EOIR mode shows only radar tracks, which are the ones the user can confirm with EO/IR in this scenario. 
                 List<Track> radarTracks = trackManager.GetTracksBySensorType(SensorType.Radar);
                 if (radarTracks != null && radarTracks.Count > 0)
                 {

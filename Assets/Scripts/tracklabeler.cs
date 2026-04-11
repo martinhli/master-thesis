@@ -23,7 +23,7 @@ public class tracklabeler : MonoBehaviour
     public Camera mainViewCamera;
     public Camera eoirViewCamera;
     public float fallbackLabelHeight = 20f;
-    public float extraHeightAboveShip = 60f;
+    public float extraHeightAboveShip = 80f;
 
     [Header("Dual-Camera Billboard")]
     [Tooltip("Blend orientation toward EO/IR when EO/IR is actively pointed at this overlay")]
@@ -41,9 +41,14 @@ public class tracklabeler : MonoBehaviour
     [Range(0f, 1f)]
     public float eoirBlendWeight = 0.5f;
 
-    [Header("Orientation Offset")]
-    [Tooltip("Euler rotation offset applied after billboard facing. Use X=180 to flip vertically.")]
+    [Tooltip("Optional rotation after billboard facing.")]
     public Vector3 billboardRotation = new Vector3(0f, 180f, 0f);
+
+    [Tooltip("Keep labels upright with runtime defaults.")]
+    public bool forceUprightBillboard = true;
+
+    [Tooltip("Maximum distance for associating a label track to a ship when explicit ship data is missing.")]
+    public float shipAssociationDistanceThreshold = 1200f;
 
     [Header("Distance Scaling")]
     [Tooltip("Distance at which the label appears at its original size.")]
@@ -55,17 +60,16 @@ public class tracklabeler : MonoBehaviour
 
     private SimulatedShip _ship;
     private Renderer[] _shipRenderers;
+    private Quaternion _prefabLocalRotation = Quaternion.identity;
 
     void Start()
     {
-        // Force the TMP material to render on top of all scene geometry (including water shaders)
-        // by setting ZTest to Always. We instance the material so other labels are unaffected.
+        _prefabLocalRotation = transform.localRotation;
+
         if (labelText != null)
         {
             labelText.fontMaterial = new Material(labelText.fontMaterial);
             labelText.fontMaterial.SetFloat("_ZTest", (float)UnityEngine.Rendering.CompareFunction.Always);
-            // Overlay render queue (4000+) ensures the label draws after all opaque/transparent passes,
-            // so it is never occluded by water, fog, or any other scene geometry.
             labelText.fontMaterial.renderQueue = 4000;
         }
     }
@@ -87,11 +91,13 @@ public class tracklabeler : MonoBehaviour
 
     void Update()
     {
-        if (track == null) return;
+        if (track == null)
+        {
+            return;
+        }
 
         CacheShipReferenceIfNeeded();
 
-        // Place the label above the actual ship model.
         if (_ship != null)
         {
             Vector3 shipPos = _ship.transform.position;
@@ -103,50 +109,89 @@ public class tracklabeler : MonoBehaviour
             transform.position = track.position + Vector3.up * fallbackLabelHeight;
         }
 
-        // Face the active aircraft view camera, not implicitly Camera.main.
         Camera cam = mainViewCamera != null ? mainViewCamera : Camera.main;
         if (cam != null)
         {
-            Vector3 toMainCamera = (cam.transform.position - transform.position).normalized;
-            Vector3 lookDirection = toMainCamera;
+            Vector3 mainDir = cam.transform.position - transform.position;
+            if (mainDir.sqrMagnitude < 0.0001f)
+            {
+                mainDir = cam.transform.forward;
+            }
+
+            Vector3 finalDir = mainDir.normalized;
 
             if (enableEOIRBillboardBlend && ShouldBlendTowardEOIR())
             {
-                Vector3 toEOIRCamera = (eoirViewCamera.transform.position - transform.position).normalized;
                 float weight = Mathf.Clamp01(eoirBlendWeight);
-                lookDirection = Vector3.Slerp(toMainCamera, toEOIRCamera, weight).normalized;
+                Vector3 eoirDir = eoirViewCamera.transform.position - transform.position;
+                if (eoirDir.sqrMagnitude > 0.0001f)
+                {
+                    finalDir = Vector3.Slerp(finalDir, eoirDir.normalized, weight).normalized;
+                }
             }
 
-            if (lookDirection.sqrMagnitude > 0.0001f)
-            {
-                transform.rotation = Quaternion.LookRotation(lookDirection, Vector3.up);
-                transform.rotation *= Quaternion.Euler(billboardRotation);
-            }
+            Quaternion targetRotation = forceUprightBillboard
+                ? Quaternion.LookRotation(finalDir, Vector3.up)
+                : Quaternion.LookRotation(finalDir, cam.transform.up);
 
-            // Scale label so it appears the same angular size regardless of distance.
+            Quaternion runtimeOffset = forceUprightBillboard
+                ? Quaternion.Euler(0f, 180f, 0f)
+                : Quaternion.Euler(billboardRotation);
+
+            transform.rotation = targetRotation * _prefabLocalRotation * runtimeOffset;
+
             float dist = Vector3.Distance(cam.transform.position, transform.position);
             float scaleFactor = Mathf.Clamp(dist / referenceDistance, minScale, maxScale);
             transform.localScale = Vector3.one * scaleFactor;
         }
 
-        // Update label text with track info
         UpdateLabel();
     }
 
     private void CacheShipReferenceIfNeeded()
     {
-        if (_ship != null || track == null || track.shipData == null) return;
-        if (string.IsNullOrEmpty(track.shipData.name)) return;
+        if (_ship != null || track == null)
+        {
+            return;
+        }
+
+        if (track.shipData != null && !string.IsNullOrEmpty(track.shipData.name))
+        {
+            SimulatedShip[] namedShips = FindObjectsOfType<SimulatedShip>();
+            for (int i = 0; i < namedShips.Length; i++)
+            {
+                if (namedShips[i] != null && namedShips[i].shipName == track.shipData.name)
+                {
+                    _ship = namedShips[i];
+                    _shipRenderers = _ship.GetComponentsInChildren<Renderer>();
+                    return;
+                }
+            }
+        }
 
         SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+        SimulatedShip nearest = null;
+        float bestDistance = float.MaxValue;
+
         for (int i = 0; i < ships.Length; i++)
         {
-            if (ships[i] != null && ships[i].shipName == track.shipData.name)
+            if (ships[i] == null)
             {
-                _ship = ships[i];
-                _shipRenderers = _ship.GetComponentsInChildren<Renderer>();
-                return;
+                continue;
             }
+
+            float distance = Vector3.Distance(track.position, ships[i].transform.position);
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                nearest = ships[i];
+            }
+        }
+
+        if (nearest != null && bestDistance <= Mathf.Max(0f, shipAssociationDistanceThreshold))
+        {
+            _ship = nearest;
+            _shipRenderers = _ship.GetComponentsInChildren<Renderer>();
         }
     }
 
@@ -199,10 +244,8 @@ public class tracklabeler : MonoBehaviour
         return combined.extents.y;
     }
 
-    void UpdateLabel()
+    private void UpdateLabel()
     {
-        if (track == null) return;
-
         if (labelText == null)
         {
             return;
@@ -212,35 +255,53 @@ public class tracklabeler : MonoBehaviour
         {
             case LabelDisplayMode.AISDeterministicIdentity:
             {
-                string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
-                    ? track.shipData.name
-                    : track.trackid;
-                labelText.text = isConfirmed ? $"{identity}\\n[{confirmedTag}]" : identity;
+                string identity = GetContactListID();
+                labelText.text = isConfirmed ? $"{identity}\n[{confirmedTag}]" : identity;
                 labelText.color = isConfirmed ? confirmedLabelColor : Color.white;
                 break;
             }
 
             case LabelDisplayMode.RadarUncertainIdentity:
             {
-                labelText.text = isConfirmed ? $"RADAR CONTACT\\n[{confirmedTag}]" : "RADAR CONTACT";
+                string radarIdentity = GetContactListID();
+                labelText.text = isConfirmed ? $"{radarIdentity}\n[{confirmedTag}]" : radarIdentity;
                 labelText.color = isConfirmed ? confirmedLabelColor : Color.yellow;
                 break;
             }
 
             case LabelDisplayMode.FusedUncertaintyAwareIdentity:
             {
-                string identity = track.shipData != null && !string.IsNullOrEmpty(track.shipData.name)
-                    ? track.shipData.name
-                    : "UNKNOWN";
-                string baseLabel = $"{identity}\\nConf: {track.identityConfidence}\\nU: {track.positionUncertainty:F0} m";
-                labelText.text = isConfirmed ? $"{baseLabel}\\n[{confirmedTag}]" : baseLabel;
+                string identity = GetContactListID();
+                string baseLabel = $"{identity}\nConf: {track.identityConfidence}\nU: {track.positionUncertainty:F0} m";
+                labelText.text = isConfirmed ? $"{baseLabel}\n[{confirmedTag}]" : baseLabel;
                 labelText.color = isConfirmed ? confirmedLabelColor : GetConfidenceColor(track.identityConfidence);
                 break;
             }
         }
     }
 
-    Color GetConfidenceColor (IdentityConfidence confidence)
+    private string GetContactListID()
+    {
+        return $"{GetRadarId()}\n{GetKnownUnknownTag()}";
+    }
+
+    private string GetRadarId()
+    {
+        if (track != null && !string.IsNullOrEmpty(track.trackid))
+        {
+            return track.trackid;
+        }
+
+        return "RADAR_UNKNOWN";
+    }
+
+    private string GetKnownUnknownTag()
+    {
+        bool isKnown = _ship != null ? _ship.aisTransponder : (track != null && track.shipData != null && !string.IsNullOrEmpty(track.shipData.name));
+        return isKnown ? "KNOWN" : "UNKNOWN";
+    }
+
+    private Color GetConfidenceColor(IdentityConfidence confidence)
     {
         switch (confidence)
         {
