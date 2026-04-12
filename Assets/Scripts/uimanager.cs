@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 using Data;
 using System.Collections.Generic;
@@ -79,6 +80,10 @@ public class UIManager : MonoBehaviour
     private Coroutine resetStatusCoroutine;
     private float nextContactRefreshTime;
     private bool taskCompletedLock;
+    private List<SimulatedShip> aisBaselineTargets = new List<SimulatedShip>();
+    private int currentAisTargetIndex = 0;
+    private float aisClickRaycastDistance = 15000f;
+    private float aisClickSphereCastRadius = 100f;  
 
     void Start()
     {
@@ -103,9 +108,21 @@ public class UIManager : MonoBehaviour
         TryAutoStartTask();
     }
 
+    void OnEnable()
+    {
+        HookScenarioDropdown();
+    }
+
     void Update()
     {
         RefreshContactList();
+
+        // Scenario 1 should be operable even before sensor-track auto-start warms up.
+        if (scenario == StudyScenario.AISDeterministicBaseline)
+        {
+            EnsureAISBaselineReady();
+            HandleAISBaselineInput();
+        }
 
         if (!taskActive)
         {
@@ -136,6 +153,16 @@ public class UIManager : MonoBehaviour
     {
         scenario = selectedScenario;
         taskCompletedLock = false;
+
+        if (scenario == StudyScenario.AISDeterministicBaseline)
+        {
+            // Reset baseline sequence when entering Scenario 1.
+            currentAisTargetIndex = 0;
+            aisBaselineTargets.Clear();
+            confirmedTrackIds.Clear();
+            confirmedContacts = 0;
+        }
+
         ApplyScenarioInstructions();
         RefreshRequiredTargetsFromScene();
     }
@@ -232,24 +259,39 @@ public class UIManager : MonoBehaviour
         switch (scenario)
         {
             case StudyScenario.AISDeterministicBaseline:
+                string aisInstructions = "Use the AIS labels to locate the ships and confirm their identity." +
+                "Use the sensor contact list and look around the scene to help find and confirm each ship." +
+                "Use the [LEFT TRIGGER] to confirm a ship when you have visually located it in the scene.";
+                if (currentAisTargetIndex < aisBaselineTargets.Count)
+                {
+                    SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+                    if (targetShip != null && !string.IsNullOrEmpty(targetShip.mmsi))
+                    {
+                        aisInstructions += $"\n\nCURRENT SHIP AIS MMSI: {targetShip.mmsi}\nClick on the corresponding vessel to confirm.";
+                    }
+                }
                 SetTaskInstructions(
                     "SCENARIO 1: AIS DETERMINISTIC BASELINE",
-                    "Use AIS AR overlays to locate the target and confirm identity. No uncertainty cues or EO/IR support are available.");
-                SetConfirmationStatus("READY", "Awaiting AIS-based target confirmation...", readyColor);
+                    aisInstructions);
+                SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
 
             case StudyScenario.RadarEOIRDegraded:
                 SetTaskInstructions(
                     "SCENARIO 2: RADAR + EO/IR DEGRADED",
-                    "Locate radar contacts, task EO/IR camera, and confirm the correct target manually.");
-                SetConfirmationStatus("READY", "Awaiting radar contact confirmation with EO/IR...", readyColor);
+                    "Find unknown radar contacts by looking in the scene and in the sensor contact list." +
+                    "Use the EO/IR camera to identify the unknown contact." +
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [RIGHT TRIGGER].");
+                SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
 
             case StudyScenario.FusedUncertaintyAware:
                 SetTaskInstructions(
                     "SCENARIO 3: FUSED UNCERTAINTY-AWARE",
-                    "Use fused AIS/radar overlays and uncertainty cues to assess reliability. Task EO/IR when needed before confirming.");
-                SetConfirmationStatus("READY", "Awaiting uncertainty-aware target confirmation...", readyColor);
+                    "Use the fused AIS/radar labels and uncertainty cues to assess reliability of identified ships." +
+                    "Use the EO/IR camera to identify the unknown contact." +
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [RIGHT TRIGGER].");
+                SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
         }
     }
@@ -277,6 +319,11 @@ public class UIManager : MonoBehaviour
 
     private void HookScenarioDropdown()
     {
+        if (scenarioDropdown == null)
+        {
+            scenarioDropdown = FindFirstObjectByType<TMP_Dropdown>();
+        }
+
         if (scenarioDropdown == null)
         {
             return;
@@ -360,6 +407,13 @@ public class UIManager : MonoBehaviour
         radarContacts = contacts;
         totalContacts = radarContacts.Count;
         RefreshRequiredTargetsFromScene();
+        
+        // Initialize AIS Baseline targets if in AIS scenario
+        if (scenario == StudyScenario.AISDeterministicBaseline)
+        {
+            InitializeAISBaselineTargets();
+        }
+        
         nextContactRefreshTime = 0f;
 
         // Need a function to populate contact list panel with current contacts
@@ -761,11 +815,29 @@ public class UIManager : MonoBehaviour
 
         if (scenario == StudyScenario.AISDeterministicBaseline)
         {
+            // For AIS baseline, all ships with AIS are required targets
+            SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
+            foreach (SimulatedShip ship in ships)
+            {
+                if (ship == null || !ship.aisTransponder)
+                {
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(ship.mmsi))
+                {
+                    requiredTargetTrackIds.Add($"AIS_{ship.mmsi}");
+                }
+                else if (!string.IsNullOrEmpty(ship.shipName))
+                {
+                    requiredTargetTrackIds.Add(ship.shipName);
+                }
+            }
             return;
         }
 
-        SimulatedShip[] ships = FindObjectsOfType<SimulatedShip>();
-        foreach (SimulatedShip ship in ships)
+        SimulatedShip[] allShips = FindObjectsOfType<SimulatedShip>();
+        foreach (SimulatedShip ship in allShips)
         {
             if (ship == null || ship.aisTransponder)
             {
@@ -854,6 +926,130 @@ public class UIManager : MonoBehaviour
 
             default:
                 return trackManager.GetActiveTracks();
+        }
+    }
+
+    private void InitializeAISBaselineTargets()
+    {
+        aisBaselineTargets.Clear();
+        currentAisTargetIndex = 0;
+
+        SimulatedShip[] allShips = FindObjectsOfType<SimulatedShip>();
+        foreach (SimulatedShip ship in allShips)
+        {
+            if (ship != null && ship.aisTransponder && !string.IsNullOrEmpty(ship.mmsi))
+            {
+                aisBaselineTargets.Add(ship);
+            }
+        }
+
+        Debug.Log($"[UIManager] AIS Baseline: Initialized {aisBaselineTargets.Count} targets to locate.");
+        ApplyScenarioInstructions();
+    }
+
+    private void HandleAISBaselineInput()
+    {
+        if (aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
+        {
+            return;
+        }
+
+        if (Input.GetMouseButtonDown(0))
+        {
+            // Ignore clicks on UI elements so dropdown/panels do not trigger ship-selection logic.
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                return;
+            }
+
+            SimulatedShip clickedShip = RaycastDetectShip();
+            if (clickedShip != null)
+            {
+                SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+                if (clickedShip == targetShip)
+                {
+                    string trackId = $"AIS_{clickedShip.mmsi}";
+                    OnShipConfirmed(trackId);
+                    AdvanceToNextAISTarget();
+                }
+                else
+                {
+                    SimulatedShip targetForError = aisBaselineTargets[currentAisTargetIndex];
+                    SetConfirmationStatus("REJECTED", $"Wrong target. Looking for MMSI {targetForError.mmsi}, not {clickedShip.mmsi}", rejectedColor);
+                    ScheduleStatusReset();
+                }
+            }
+        }
+    }
+
+    private SimulatedShip RaycastDetectShip()
+    {
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+        {
+            return null;
+        }
+
+        Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
+        RaycastHit[] hits = Physics.SphereCastAll(ray, aisClickSphereCastRadius, aisClickRaycastDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
+
+        SimulatedShip bestShip = null;
+        float bestDistance = float.MaxValue;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            SimulatedShip ship = hits[i].collider.GetComponent<SimulatedShip>();
+            if (ship == null)
+            {
+                ship = hits[i].collider.GetComponentInParent<SimulatedShip>();
+            }
+
+            if (ship != null && hits[i].distance < bestDistance)
+            {
+                bestDistance = hits[i].distance;
+                bestShip = ship;
+            }
+        }
+
+        return bestShip;
+    }
+
+    private void AdvanceToNextAISTarget()
+    {
+        currentAisTargetIndex++;
+
+        if (currentAisTargetIndex >= aisBaselineTargets.Count)
+        {
+            taskCompletedLock = true;
+            SetConfirmationStatus("TASK COMPLETE", "All AIS targets have been successfully located and confirmed!", confirmedColor);
+            Debug.Log("[UIManager] AIS Baseline task completed: all vessels confirmed.");
+            return;
+        }
+
+        ResetStatus();
+        ApplyScenarioInstructions();
+        Debug.Log($"[UIManager] Advancing to target {currentAisTargetIndex + 1} of {aisBaselineTargets.Count}");
+    }
+
+    private void EnsureAISBaselineReady()
+    {
+        if (scenario != StudyScenario.AISDeterministicBaseline || taskCompletedLock)
+        {
+            return;
+        }
+
+        if (aisBaselineTargets.Count == 0)
+        {
+            InitializeAISBaselineTargets();
+            RefreshRequiredTargetsFromScene();
+        }
+
+        if (!taskActive && aisBaselineTargets.Count > 0)
+        {
+            taskActive = true;
+            taskStartTime = Time.time;
+            UpdateProgress();
+            UpdateTimer();
         }
     }
 

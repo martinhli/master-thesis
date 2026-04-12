@@ -111,6 +111,12 @@ public class SimulatedShip : MonoBehaviour
     {
         if (enableAutopilot && _rb != null)
         {
+            // Ensure gravity stays disabled to prevent downward drift when overlays appear
+            if (_rb.useGravity && disableGravity)
+            {
+                _rb.useGravity = false;
+            }
+
             // Autopilot heading target from course.
             Vector3 courseDirection = CourseToDirection(autopilotCourse);
             if (courseDirection == Vector3.zero)
@@ -125,7 +131,9 @@ public class SimulatedShip : MonoBehaviour
             _rb.MoveRotation(smoothed);
             _rb.angularVelocity = Vector3.zero;
 
-            _rb.linearVelocity = courseDirection * autopilotSpeed;
+            // Set velocity on horizontal plane only - preserve current Y velocity to prevent drift
+            Vector3 currentVelocity = _rb.linearVelocity;
+            _rb.linearVelocity = new Vector3(courseDirection.x * autopilotSpeed, currentVelocity.y, courseDirection.z * autopilotSpeed);
         }
     }
 

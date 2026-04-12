@@ -33,12 +33,6 @@ public class StudyScenarioController : MonoBehaviour
     [Tooltip("Parent/root object that contains radar/fused track overlays")]
     public GameObject radarOverlayRoot;
 
-    [Tooltip("Panel or legend that explains uncertainty/confidence cues")]
-    public GameObject uncertaintyLegendPanel;
-
-    [Tooltip("Optional EO/IR-specific UI/prefabs to hide in Scenario 1")]
-    public GameObject eoirSupportRoot;
-
     void Start()
     {
         AutoResolveReferences();
@@ -86,16 +80,6 @@ public class StudyScenarioController : MonoBehaviour
         if (radarOverlayRoot != null)
         {
             radarOverlayRoot.SetActive(enableRadar);
-        }
-
-        if (uncertaintyLegendPanel != null)
-        {
-            uncertaintyLegendPanel.SetActive(scenario == UIManager.StudyScenario.FusedUncertaintyAware);
-        }
-
-        if (eoirSupportRoot != null)
-        {
-            eoirSupportRoot.SetActive(enableEOIR);
         }
 
         switch (scenario)

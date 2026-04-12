@@ -1,5 +1,7 @@
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 public class movecursor : MonoBehaviour
 {
@@ -7,6 +9,10 @@ public class movecursor : MonoBehaviour
 
     public float sensitivity = 2.0f;
     public float smoothing = 1.5f;
+    public bool lockCursorOnStart = false;
+    public KeyCode toggleCursorKey = KeyCode.Tab;
+    public bool allowLookWhileCursorUnlocked = true;
+    public bool requireRightMouseForUnlockedLook = true;
 
     private Vector2 velocity;
     private Vector2 desiredRotation;
@@ -18,12 +24,29 @@ public class movecursor : MonoBehaviour
         {
             mainCamera = Camera.main;
         }
-        // Lock the cursor to the center of the screen and hide it
-        Cursor.lockState = CursorLockMode.Locked;
+
+        SetCursorLock(lockCursorOnStart);
     }
 
     void Update()
     {
+        if (WasToggleKeyPressed())
+        {
+            bool lockNow = Cursor.lockState != CursorLockMode.Locked;
+            SetCursorLock(lockNow);
+        }
+
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            SetCursorLock(false);
+        }
+
+        bool canRotateCamera = Cursor.lockState == CursorLockMode.Locked || CanLookWhileUnlocked();
+        if (!canRotateCamera)
+        {
+            return;
+        }
+
         // Get mouse input (delta movement)
         Vector2 mouseDelta = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
 
@@ -42,5 +65,51 @@ public class movecursor : MonoBehaviour
         // Horizontal rotation (around Y-axis) is often applied to a parent object (like a Player body)
         // If this script is only on the camera and you want full 3D rotation, you can use:
         transform.localRotation = Quaternion.Euler(-desiredRotation.y, desiredRotation.x, 0);
+    }
+
+    private bool CanLookWhileUnlocked()
+    {
+        if (!allowLookWhileCursorUnlocked)
+        {
+            return false;
+        }
+
+        if (!requireRightMouseForUnlockedLook)
+        {
+            return true;
+        }
+
+        if (Mouse.current != null)
+        {
+            return Mouse.current.rightButton.isPressed;
+        }
+
+        return Input.GetMouseButton(1);
+    }
+
+    private void SetCursorLock(bool locked)
+    {
+        Cursor.lockState = locked ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !locked;
+
+        if (locked && EventSystem.current != null)
+        {
+            EventSystem.current.SetSelectedGameObject(null);
+        }
+    }
+
+    private bool WasToggleKeyPressed()
+    {
+        if (Input.GetKeyDown(toggleCursorKey))
+        {
+            return true;
+        }
+
+        if (toggleCursorKey == KeyCode.Tab && Keyboard.current != null)
+        {
+            return Keyboard.current.tabKey.wasPressedThisFrame;
+        }
+
+        return false;
     }
 }
