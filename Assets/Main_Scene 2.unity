@@ -130,11 +130,11 @@ GameObject:
   - component: {fileID: 31673438}
   - component: {fileID: 31673440}
   - component: {fileID: 31673439}
-  m_Layer: 0
+    m_LocalScale: {x: 0.0012, y: 0.0012, z: 0.0012}
   m_Name: Content
   m_TagString: Untagged
   m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
+    m_Bits: 4294967295
   m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!224 &31673438
@@ -153,7 +153,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.000015258789, y: 0.028734371}
+  m_AnchoredPosition: {x: 0.000015258789, y: -0.030321408}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!114 &31673439
@@ -404,7 +404,7 @@ GameObject:
   m_Component:
   - component: {fileID: 91333865}
   - component: {fileID: 91333866}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Item
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -567,7 +567,7 @@ GameObject:
   - component: {fileID: 108334344}
   - component: {fileID: 108334346}
   - component: {fileID: 108334345}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Arrow
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -693,7 +693,7 @@ GameObject:
   - component: {fileID: 161813944}
   - component: {fileID: 161813943}
   - component: {fileID: 161813942}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: ScenarioSelection
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1223,7 +1223,7 @@ GameObject:
   - component: {fileID: 228861338}
   - component: {fileID: 228861340}
   - component: {fileID: 228861339}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Item Checkmark
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -1299,7 +1299,7 @@ GameObject:
   - component: {fileID: 237743826}
   - component: {fileID: 237743825}
   - component: {fileID: 237743824}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Template
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -2702,7 +2702,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 464343345}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Sliding Area
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4363,7 +4363,7 @@ GameObject:
   - component: {fileID: 1056634937}
   - component: {fileID: 1056634939}
   - component: {fileID: 1056634938}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Handle
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4603,7 +4603,7 @@ GameObject:
   - component: {fileID: 1177912579}
   - component: {fileID: 1177912581}
   - component: {fileID: 1177912580}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -4761,7 +4761,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 1738753615}
   m_Father: {fileID: 653849279}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1186557776
@@ -4904,9 +4905,9 @@ Camera:
     y: 0
     width: 1
     height: 1
-  near clip plane: 0.01
-  far clip plane: 100000
-  field of view: 75
+  near clip plane: 0.3
+  far clip plane: 60000
+  field of view: 60
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -5310,8 +5311,6 @@ MonoBehaviour:
   eoirCameraController: {fileID: 1638079334}
   aisOverlayRoot: {fileID: 857207532}
   radarOverlayRoot: {fileID: 857207532}
-  uncertaintyLegendPanel: {fileID: 0}
-  eoirSupportRoot: {fileID: 0}
 --- !u!4 &1324848169
 Transform:
   m_ObjectHideFlags: 0
@@ -5537,6 +5536,24 @@ MonoBehaviour:
   applyScenarioInstructionsOnStart: 1
   scenarioController: {fileID: 1324848168}
   scenarioDropdown: {fileID: 161813942}
+  showLeftControllerRay: 1
+  leftControllerRayLength: 4000
+  leftControllerRayWidth: 0.006
+  leftControllerRayHitMarkerSize: 0.02
+  leftControllerRayEulerOffset: {x: 0, y: 0, z: 0}
+  leftControllerRayLocalDirection: {x: 1, y: 0, z: 0}
+  autoFlipLeftRayAwayFromHead: 0
+  leftControllerTriggerThreshold: 0.2
+  leftControllerRayColor: {r: 0, g: 1, b: 1, a: 1}
+  leftControllerRayHitColor: {r: 1, g: 0.92156863, b: 0.015686275, a: 1}
+  lockScenarioDropdownToHeadset: 1
+  forceHudToMainCamera: 1
+  hudCanvasObjectName: HUD
+  scenarioDropdownLocalOffset: {x: 0, y: -0.08, z: 1}
+  scenarioDropdownLocalEuler: {x: 0, y: 0, z: 0}
+  scenarioDropdownLocalScale: {x: 0.0012, y: 0.0012, z: 0.0012}
+  alignMainCameraToEOIR: 1
+  eoirCameraObjectName: EOIRCamera
 --- !u!1 &1342308435
 GameObject:
   m_ObjectHideFlags: 0
@@ -5546,7 +5563,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1342308436}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Content
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -5858,6 +5875,7 @@ GameObject:
   - component: {fileID: 1383963623}
   - component: {fileID: 1383963622}
   - component: {fileID: 1383963621}
+  - component: {fileID: 1383963624}
   m_Layer: 0
   m_Name: EventSystem
   m_TagString: Untagged
@@ -5872,7 +5890,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1383963620}
-  m_Enabled: 1
+  m_Enabled: 0
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 01614664b831546d2ae94a42149d80ac, type: 3}
   m_Name: 
@@ -5926,6 +5944,45 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1383963624
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1383963620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ab68ce6587aab0146b8dabefbd806791, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.UI.XRUIInputModule
+  m_SendPointerHoverToParent: 1
+  m_ClickSpeed: 0.3
+  m_MoveDeadzone: 0.6
+  m_RepeatDelay: 0.5
+  m_RepeatRate: 0.1
+  m_TrackedDeviceDragThresholdMultiplier: 2
+  m_TrackedScrollDeltaMultiplier: 5
+  m_BypassUIToolkitEvents: 0
+  m_ActiveInputMode: 0
+  m_EnableXRInput: 1
+  m_EnableMouseInput: 1
+  m_EnableTouchInput: 1
+  m_EnableGamepadInput: 1
+  m_EnableJoystickInput: 1
+  m_PointAction: {fileID: 0}
+  m_LeftClickAction: {fileID: 0}
+  m_MiddleClickAction: {fileID: 0}
+  m_RightClickAction: {fileID: 0}
+  m_ScrollWheelAction: {fileID: 0}
+  m_NavigateAction: {fileID: 0}
+  m_SubmitAction: {fileID: 0}
+  m_CancelAction: {fileID: 0}
+  m_EnableBuiltinActionsAsFallback: 1
+  m_HorizontalAxis: Horizontal
+  m_VerticalAxis: Vertical
+  m_SubmitButton: Submit
+  m_CancelButton: Cancel
 --- !u!1 &1414264970
 GameObject:
   m_ObjectHideFlags: 0
@@ -6407,7 +6464,8 @@ GameObject:
   - component: {fileID: 1512802196}
   - component: {fileID: 1512802195}
   - component: {fileID: 1512802194}
-  m_Layer: 0
+  - component: {fileID: 1512802197}
+  m_Layer: 6
   m_Name: HUD
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6421,9 +6479,9 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1512802192}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.0012, y: 0.0012, z: 0.0012}
   m_ConstrainProportionsScale: 1
   m_Children:
   - {fileID: 161813941}
@@ -6432,8 +6490,8 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
-  m_Pivot: {x: 0, y: 0}
+  m_SizeDelta: {x: 800, y: 600}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1512802194
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6473,7 +6531,7 @@ MonoBehaviour:
   m_FallbackScreenDPI: 96
   m_DefaultSpriteDPI: 96
   m_DynamicPixelsPerUnit: 1
-  m_PresetInfoIsWorld: 0
+  m_PresetInfoIsWorld: 1
 --- !u!223 &1512802196
 Canvas:
   m_ObjectHideFlags: 0
@@ -6483,8 +6541,8 @@ Canvas:
   m_GameObject: {fileID: 1512802192}
   m_Enabled: 1
   serializedVersion: 3
-  m_RenderMode: 0
-  m_Camera: {fileID: 1186557780}
+  m_RenderMode: 2
+  m_Camera: {fileID: 1738753618}
   m_PlaneDistance: 1
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
@@ -6497,6 +6555,25 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!114 &1512802197
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1512802192}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7951c64acb0fa62458bf30a60089fe2d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.XR.Interaction.Toolkit::UnityEngine.XR.Interaction.Toolkit.UI.TrackedDeviceGraphicRaycaster
+  m_IgnoreReversedGraphics: 0
+  m_CheckFor2DOcclusion: 0
+  m_CheckFor3DOcclusion: 0
+  m_BlockingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RaycastTriggerInteraction: 1
 --- !u!1 &1519888306
 GameObject:
   m_ObjectHideFlags: 0
@@ -6655,7 +6732,7 @@ GameObject:
   - component: {fileID: 1596246973}
   - component: {fileID: 1596246972}
   - component: {fileID: 1596246971}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Scrollbar
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -6956,10 +7033,10 @@ MonoBehaviour:
   useSingleShipClass: 1
   minNormalizedBoxSize: 0.005
   captureInputKey: 32
-  useVRControllerInput: 0
+  useVRControllerInput: 1
   rightStickDeadzone: 0.2
   rightStickSensitivity: 1
-  requireRightGripForEOIRControl: 1
+  requireRightGripForEOIRControl: 0
   rightGripAxisThreshold: 0.6
 --- !u!1 &1648215550
 GameObject:
@@ -7172,7 +7249,7 @@ GameObject:
   - component: {fileID: 1693854216}
   - component: {fileID: 1693854218}
   - component: {fileID: 1693854217}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Item Label
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -7673,6 +7750,143 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1738753614
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1738753615}
+  - component: {fileID: 1738753618}
+  - component: {fileID: 1738753617}
+  - component: {fileID: 1738753616}
+  m_Layer: 0
+  m_Name: HUDCamera
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1738753615
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738753614}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1186557775}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1738753616
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738753614}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalCameraData
+  m_RenderShadows: 1
+  m_RequiresDepthTextureOption: 2
+  m_RequiresOpaqueTextureOption: 2
+  m_CameraType: 0
+  m_Cameras: []
+  m_RendererIndex: -1
+  m_VolumeLayerMask:
+    serializedVersion: 2
+    m_Bits: 1
+  m_VolumeTrigger: {fileID: 0}
+  m_VolumeFrameworkUpdateModeOption: 2
+  m_RenderPostProcessing: 0
+  m_Antialiasing: 0
+  m_AntialiasingQuality: 2
+  m_StopNaN: 0
+  m_Dithering: 0
+  m_ClearDepth: 1
+  m_AllowXRRendering: 0
+  m_AllowHDROutput: 1
+  m_UseScreenCoordOverride: 0
+  m_ScreenSizeOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_ScreenCoordScaleBias: {x: 0, y: 0, z: 0, w: 0}
+  m_RequiresDepthTexture: 0
+  m_RequiresColorTexture: 0
+  m_TaaSettings:
+    m_Quality: 3
+    m_FrameInfluence: 0.1
+    m_JitterScale: 1
+    m_MipBias: 0
+    m_VarianceClampScale: 0.9
+    m_ContrastAdaptiveSharpening: 0
+  m_Version: 2
+--- !u!81 &1738753617
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738753614}
+  m_Enabled: 1
+--- !u!20 &1738753618
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1738753614}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 4
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.01
+  far clip plane: 10
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: 1
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 64
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 3
+  m_HDR: 1
+  m_AllowMSAA: 1
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 1
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
 --- !u!1 &1787253596
 GameObject:
   m_ObjectHideFlags: 0
@@ -8166,7 +8380,7 @@ MonoBehaviour:
   m_OriginBaseGameObject: {fileID: 1935654137}
   m_CameraFloorOffsetObject: {fileID: 653849278}
   m_RequestedTrackingOriginMode: 1
-  m_CameraYOffset: 1.1176
+  m_CameraYOffset: 1.112
 --- !u!4 &1935654141
 Transform:
   m_ObjectHideFlags: 0
@@ -8922,7 +9136,7 @@ GameObject:
   - component: {fileID: 2091282219}
   - component: {fileID: 2091282218}
   - component: {fileID: 2091282217}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Viewport
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -9011,7 +9225,7 @@ GameObject:
   - component: {fileID: 2096222669}
   - component: {fileID: 2096222671}
   - component: {fileID: 2096222670}
-  m_Layer: 0
+  m_Layer: 6
   m_Name: Item Background
   m_TagString: Untagged
   m_Icon: {fileID: 0}

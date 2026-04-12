@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.XR;
+using UnityEngine.Rendering.Universal;
 using TMPro;
 using Data;
 using System.Collections.Generic;
@@ -11,6 +13,7 @@ using System.Numerics;
 
 using Color = UnityEngine.Color;
 using Debug = UnityEngine.Debug;
+using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
 
@@ -83,7 +86,41 @@ public class UIManager : MonoBehaviour
     private List<SimulatedShip> aisBaselineTargets = new List<SimulatedShip>();
     private int currentAisTargetIndex = 0;
     private float aisClickRaycastDistance = 15000f;
-    private float aisClickSphereCastRadius = 100f;  
+    private float aisClickSphereCastRadius = 100f;
+    
+    private InputDevice leftController;
+    private bool leftControllerActive = false;
+    private bool previousLeftTriggerState = false;
+    private Transform leftControllerTransform;
+    private LineRenderer leftControllerRay;
+    private GameObject leftControllerRayHitMarker;
+    private Canvas scenarioDropdownCanvas;
+    private Canvas hudCanvas;
+    private Camera eoirReferenceCamera;
+
+    [Header("VR Left Controller Ray")]
+    public bool showLeftControllerRay = true;
+    public float leftControllerRayLength = 4000f;
+    public float leftControllerRayWidth = 0.006f;
+    public float leftControllerRayHitMarkerSize = 0.02f;
+    public Vector3 leftControllerRayEulerOffset = Vector3.zero;
+    public Vector3 leftControllerRayLocalDirection = Vector3.forward;
+    public bool autoFlipLeftRayAwayFromHead = false;
+    public float leftControllerTriggerThreshold = 0.2f;
+    public Color leftControllerRayColor = Color.cyan;
+    public Color leftControllerRayHitColor = Color.yellow;
+
+    [Header("VR Dropdown Placement")]
+    public bool lockScenarioDropdownToHeadset = true;
+    public bool forceHudToMainCamera = true;
+    public string hudCanvasObjectName = "HUD";
+    public Vector3 scenarioDropdownLocalOffset = new Vector3(0f, -0.08f, 1.0f);
+    public Vector3 scenarioDropdownLocalEuler = Vector3.zero;
+    public Vector3 scenarioDropdownLocalScale = new Vector3(0.0012f, 0.0012f, 0.0012f);
+
+    [Header("Main Camera Alignment")]
+    public bool alignMainCameraToEOIR = true;
+    public string eoirCameraObjectName = "EOIRCamera";
 
     void Start()
     {
@@ -96,6 +133,10 @@ public class UIManager : MonoBehaviour
         InitializeUI();
         InitializeScenarioSelectorUI();
         HookScenarioDropdown();
+        EnsureScenarioDropdownVisibleInVR();
+        AlignMainCameraToEOIRSettings();
+
+        InitializeLeftControllerRayVisualizer();
 
         if (trackManager == null)
         {
@@ -111,10 +152,14 @@ public class UIManager : MonoBehaviour
     void OnEnable()
     {
         HookScenarioDropdown();
+        EnsureScenarioDropdownVisibleInVR();
     }
 
     void Update()
     {
+        EnsureScenarioDropdownVisibleInVR();
+        AlignMainCameraToEOIRSettings();
+
         RefreshContactList();
 
         // Scenario 1 should be operable even before sensor-track auto-start warms up.
@@ -132,6 +177,12 @@ public class UIManager : MonoBehaviour
 
         UpdateTimer();
         UpdateProgress();
+    }
+
+    void LateUpdate()
+    {
+        // Run after tracked-pose updates to avoid stale controller orientation.
+        UpdateLeftControllerRayVisualizer();
     }
 
     void InitializeUI()
@@ -267,7 +318,7 @@ public class UIManager : MonoBehaviour
                     SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
                     if (targetShip != null && !string.IsNullOrEmpty(targetShip.mmsi))
                     {
-                        aisInstructions += $"\n\nCURRENT SHIP AIS MMSI: {targetShip.mmsi}\nClick on the corresponding vessel to confirm.";
+                        aisInstructions += $"\n\nCURRENT SHIP AIS MMSI: {targetShip.mmsi}";
                     }
                 }
                 SetTaskInstructions(
@@ -281,7 +332,7 @@ public class UIManager : MonoBehaviour
                     "SCENARIO 2: RADAR + EO/IR DEGRADED",
                     "Find unknown radar contacts by looking in the scene and in the sensor contact list." +
                     "Use the EO/IR camera to identify the unknown contact." +
-                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [RIGHT TRIGGER].");
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B].");
                 SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
 
@@ -331,6 +382,145 @@ public class UIManager : MonoBehaviour
 
         scenarioDropdown.onValueChanged.RemoveListener(OnScenarioDropdownChanged);
         scenarioDropdown.onValueChanged.AddListener(OnScenarioDropdownChanged);
+
+        EnsureScenarioDropdownVisibleInVR();
+    }
+
+    private void EnsureScenarioDropdownVisibleInVR()
+    {
+        if (scenarioDropdownCanvas == null)
+        {
+            if (scenarioDropdown != null)
+            {
+                scenarioDropdownCanvas = scenarioDropdown.GetComponentInParent<Canvas>();
+            }
+
+            // Fallback for cases where the dropdown reference is missing in Inspector.
+            if (scenarioDropdownCanvas == null)
+            {
+                if (hudCanvas == null)
+                {
+                    GameObject hudObject = GameObject.Find(hudCanvasObjectName);
+                    if (hudObject != null)
+                    {
+                        hudCanvas = hudObject.GetComponent<Canvas>();
+                    }
+                }
+
+                scenarioDropdownCanvas = hudCanvas;
+            }
+        }
+
+        if (scenarioDropdownCanvas == null)
+        {
+            return;
+        }
+
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+        {
+            return;
+        }
+
+        scenarioDropdownCanvas.enabled = true;
+        scenarioDropdownCanvas.overrideSorting = true;
+        scenarioDropdownCanvas.sortingOrder = 5000;
+        scenarioDropdownCanvas.worldCamera = mainCam;
+        scenarioDropdownCanvas.planeDistance = Mathf.Max(0.4f, scenarioDropdownCanvas.planeDistance);
+
+        if (!lockScenarioDropdownToHeadset && !forceHudToMainCamera)
+        {
+            if (scenarioDropdownCanvas.renderMode != RenderMode.ScreenSpaceCamera)
+            {
+                scenarioDropdownCanvas.renderMode = RenderMode.ScreenSpaceCamera;
+            }
+            return;
+        }
+
+        if (scenarioDropdownCanvas.renderMode != RenderMode.WorldSpace)
+        {
+            scenarioDropdownCanvas.renderMode = RenderMode.WorldSpace;
+        }
+
+        Transform canvasTransform = scenarioDropdownCanvas.transform;
+        if (canvasTransform.parent != mainCam.transform)
+        {
+            canvasTransform.SetParent(mainCam.transform, false);
+        }
+
+        RectTransform rect = scenarioDropdownCanvas.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.localPosition = scenarioDropdownLocalOffset;
+            rect.localRotation = Quaternion.Euler(scenarioDropdownLocalEuler);
+            rect.localScale = scenarioDropdownLocalScale;
+        }
+    }
+
+    private Camera TryResolveEOIRCamera()
+    {
+        if (eoirReferenceCamera != null)
+        {
+            return eoirReferenceCamera;
+        }
+
+        GameObject eoirObject = GameObject.Find(eoirCameraObjectName);
+        if (eoirObject != null)
+        {
+            eoirReferenceCamera = eoirObject.GetComponent<Camera>();
+        }
+
+        return eoirReferenceCamera;
+    }
+
+    private void AlignMainCameraToEOIRSettings()
+    {
+        if (!alignMainCameraToEOIR)
+        {
+            return;
+        }
+
+        Camera mainCam = Camera.main;
+        Camera eoirCam = TryResolveEOIRCamera();
+        if (mainCam == null || eoirCam == null)
+        {
+            return;
+        }
+
+        mainCam.nearClipPlane = Mathf.Max(0.03f, eoirCam.nearClipPlane);
+        mainCam.farClipPlane = eoirCam.farClipPlane;
+        mainCam.fieldOfView = eoirCam.fieldOfView;
+
+        UniversalAdditionalCameraData mainData = mainCam.GetUniversalAdditionalCameraData();
+        UniversalAdditionalCameraData eoirData = eoirCam.GetUniversalAdditionalCameraData();
+        if (mainData != null && eoirData != null)
+        {
+            mainData.renderPostProcessing = eoirData.renderPostProcessing;
+            mainData.volumeLayerMask = eoirData.volumeLayerMask;
+            mainData.volumeTrigger = eoirData.volumeTrigger;
+        }
+    }
+
+    private bool TryGetLeftControllerRotation(out Quaternion rotation)
+    {
+        rotation = Quaternion.identity;
+        if (!TryInitializeLeftController())
+        {
+            return false;
+        }
+
+        if (leftController.TryGetFeatureValue(CommonUsages.deviceRotation, out rotation))
+        {
+            return true;
+        }
+
+        if (leftControllerTransform != null)
+        {
+            rotation = leftControllerTransform.rotation;
+            return true;
+        }
+
+        return false;
     }
 
     public void OnScenarioDropdownChanged(int index)
@@ -954,6 +1144,9 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        bool confirmationPressed = false;
+        
+        // Check for mouse input
         if (Input.GetMouseButtonDown(0))
         {
             // Ignore clicks on UI elements so dropdown/panels do not trigger ship-selection logic.
@@ -961,7 +1154,17 @@ public class UIManager : MonoBehaviour
             {
                 return;
             }
-
+            confirmationPressed = true;
+        }
+        
+        // Check for VR left controller trigger input
+        if (TryIsLeftControllerTriggerPressed())
+        {
+            confirmationPressed = true;
+        }
+        
+        if (confirmationPressed)
+        {
             SimulatedShip clickedShip = RaycastDetectShip();
             if (clickedShip != null)
             {
@@ -990,7 +1193,9 @@ public class UIManager : MonoBehaviour
             return null;
         }
 
-        Ray ray = mainCam.ScreenPointToRay(Input.mousePosition);
+        // For VR, use camera center. For desktop, use mouse position.
+        Vector2 raycastSource = Input.mousePresent ? Input.mousePosition : mainCam.pixelRect.center;
+        Ray ray = mainCam.ScreenPointToRay(raycastSource);
         RaycastHit[] hits = Physics.SphereCastAll(ray, aisClickSphereCastRadius, aisClickRaycastDistance, Physics.DefaultRaycastLayers, QueryTriggerInteraction.Ignore);
 
         SimulatedShip bestShip = null;
@@ -1030,6 +1235,80 @@ public class UIManager : MonoBehaviour
         ApplyScenarioInstructions();
         Debug.Log($"[UIManager] Advancing to target {currentAisTargetIndex + 1} of {aisBaselineTargets.Count}");
     }
+    
+    private bool TryInitializeLeftController()
+    {
+        if (leftController.isValid)
+        {
+            return true;
+        }
+
+        // Preferred lookup for hand-specific devices.
+        leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+        if (leftController.isValid)
+        {
+            leftControllerActive = true;
+            previousLeftTriggerState = false;
+            return true;
+        }
+
+        List<InputDevice> devices = new List<InputDevice>();
+        InputDevices.GetDevicesWithCharacteristics(
+            InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.HeldInHand | InputDeviceCharacteristics.Left,
+            devices);
+
+        if (devices.Count == 0)
+        {
+            InputDevices.GetDevicesWithCharacteristics(
+                InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Left,
+                devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Left, devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            leftControllerActive = false;
+            return false;
+        }
+
+        leftController = devices[0];
+        leftControllerActive = true;
+        previousLeftTriggerState = false;
+        return leftController.isValid;
+    }
+    
+    private bool TryIsLeftControllerTriggerPressed()
+    {
+        if (!TryInitializeLeftController())
+        {
+            previousLeftTriggerState = false;
+            return false;
+        }
+
+        bool triggerButtonPressed;
+        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed) && triggerButtonPressed)
+        {
+            bool wasButtonPressed = previousLeftTriggerState;
+            previousLeftTriggerState = true;
+            return !wasButtonPressed;
+        }
+
+        float triggerValue;
+        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            previousLeftTriggerState = false;
+            return false;
+        }
+
+        bool currentTriggerState = triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
+        bool wasTriggerPressed = previousLeftTriggerState;
+        previousLeftTriggerState = currentTriggerState;
+        return currentTriggerState && !wasTriggerPressed;
+    }
 
     private void EnsureAISBaselineReady()
     {
@@ -1051,6 +1330,184 @@ public class UIManager : MonoBehaviour
             UpdateProgress();
             UpdateTimer();
         }
+    }
+
+    private void InitializeLeftControllerRayVisualizer()
+    {
+        if (!showLeftControllerRay)
+        {
+            return;
+        }
+
+        TryResolveLeftControllerTransform();
+
+        if (leftControllerRay == null)
+        {
+            GameObject lineObject = new GameObject("LeftControllerRay");
+            leftControllerRay = lineObject.AddComponent<LineRenderer>();
+            leftControllerRay.useWorldSpace = true;
+            leftControllerRay.positionCount = 2;
+            leftControllerRay.startWidth = leftControllerRayWidth;
+            leftControllerRay.endWidth = leftControllerRayWidth;
+            leftControllerRay.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            leftControllerRay.receiveShadows = false;
+            leftControllerRay.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+            leftControllerRay.numCornerVertices = 4;
+            leftControllerRay.numCapVertices = 4;
+            leftControllerRay.textureMode = LineTextureMode.Stretch;
+
+            Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (unlitShader == null)
+            {
+                unlitShader = Shader.Find("Sprites/Default");
+            }
+
+            if (unlitShader != null)
+            {
+                Material lineMaterial = new Material(unlitShader);
+                lineMaterial.color = leftControllerRayColor;
+                leftControllerRay.material = lineMaterial;
+            }
+
+            leftControllerRay.startColor = leftControllerRayColor;
+            leftControllerRay.endColor = leftControllerRayColor;
+            leftControllerRay.enabled = false;
+        }
+
+        if (leftControllerRayHitMarker == null)
+        {
+            leftControllerRayHitMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            leftControllerRayHitMarker.name = "LeftControllerRayHitMarker";
+            leftControllerRayHitMarker.transform.localScale = Vector3.one * leftControllerRayHitMarkerSize;
+
+            Collider markerCollider = leftControllerRayHitMarker.GetComponent<Collider>();
+            if (markerCollider != null)
+            {
+                Destroy(markerCollider);
+            }
+
+            Renderer markerRenderer = leftControllerRayHitMarker.GetComponent<Renderer>();
+            if (markerRenderer != null)
+            {
+                Shader markerShader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (markerShader == null)
+                {
+                    markerShader = Shader.Find("Sprites/Default");
+                }
+
+                if (markerShader != null)
+                {
+                    Material markerMaterial = new Material(markerShader);
+                    markerMaterial.color = leftControllerRayHitColor;
+                    markerRenderer.material = markerMaterial;
+                }
+                else
+                {
+                    markerRenderer.material.color = leftControllerRayHitColor;
+                }
+            }
+
+            leftControllerRayHitMarker.SetActive(false);
+        }
+    }
+
+    private bool TryResolveLeftControllerTransform()
+    {
+        if (leftControllerTransform != null)
+        {
+            return true;
+        }
+
+        GameObject leftControllerObject = GameObject.Find("Left Controller");
+        if (leftControllerObject != null)
+        {
+            leftControllerTransform = leftControllerObject.transform;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void UpdateLeftControllerRayVisualizer()
+    {
+        if (leftControllerRay == null || leftControllerRayHitMarker == null)
+        {
+            InitializeLeftControllerRayVisualizer();
+        }
+
+        if (leftControllerRay == null || leftControllerRayHitMarker == null)
+        {
+            return;
+        }
+
+        if (!showLeftControllerRay)
+        {
+            leftControllerRay.enabled = false;
+            leftControllerRayHitMarker.SetActive(false);
+            return;
+        }
+
+        if (!TryResolveLeftControllerTransform())
+        {
+            leftControllerRay.enabled = false;
+            leftControllerRayHitMarker.SetActive(false);
+            return;
+        }
+
+        Vector3 origin = leftControllerTransform.position;
+        Vector3 localDirection = leftControllerRayLocalDirection.sqrMagnitude > 0.0001f
+            ? leftControllerRayLocalDirection.normalized
+            : Vector3.forward;
+
+        Quaternion controllerRotation;
+        Vector3 direction;
+        if (TryGetLeftControllerRotation(out controllerRotation))
+        {
+            direction = controllerRotation * localDirection;
+        }
+        else
+        {
+            direction = leftControllerTransform.TransformDirection(localDirection);
+        }
+
+        direction = Quaternion.Euler(leftControllerRayEulerOffset) * direction;
+
+        Camera mainCam = Camera.main;
+        if (autoFlipLeftRayAwayFromHead && mainCam != null)
+        {
+            // If the ray is generally opposite to head-forward, flip it to avoid backwards pointing.
+            if (Vector3.Dot(direction, mainCam.transform.forward) < -0.15f)
+            {
+                direction = -direction;
+            }
+        }
+
+        direction.Normalize();
+        Vector3 endPoint = origin + direction * Mathf.Max(0.5f, leftControllerRayLength);
+
+        RaycastHit hit;
+        bool hitSomething = Physics.Raycast(
+            origin,
+            direction,
+            out hit,
+            Mathf.Max(0.5f, leftControllerRayLength),
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        if (hitSomething)
+        {
+            endPoint = hit.point;
+            leftControllerRayHitMarker.SetActive(true);
+            leftControllerRayHitMarker.transform.position = hit.point;
+        }
+        else
+        {
+            leftControllerRayHitMarker.SetActive(false);
+        }
+
+        leftControllerRay.enabled = true;
+        leftControllerRay.SetPosition(0, origin);
+        leftControllerRay.SetPosition(1, endPoint);
     }
 
 }
