@@ -164,6 +164,9 @@ public class EOIRCameraController : MonoBehaviour
     private bool previousBButtonState;
     private bool rightControllerActive;
     private string lastConfirmedTrackId;
+    private Quaternion initialLocalRotation;
+    private float initialTilt;
+    private float initialPan;
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -181,6 +184,10 @@ public class EOIRCameraController : MonoBehaviour
         {
             cameraMount = transform.parent;
         }
+
+        initialLocalRotation = transform.localRotation;
+        initialTilt = currentTilt;
+        initialPan = currentPan;
 
         // Initialize camera orientation
         eoirCamera.fieldOfView = currentZoom;
@@ -219,7 +226,8 @@ public class EOIRCameraController : MonoBehaviour
 
     void ApplyCameraRotation()
     {
-        transform.localRotation = Quaternion.Euler(currentTilt, currentPan, 0f);
+        Quaternion deltaRotation = Quaternion.Euler(currentTilt - initialTilt, currentPan - initialPan, 0f);
+        transform.localRotation = initialLocalRotation * deltaRotation;
     }
 
     public void LookAtPosition(Vector3 worldPosition)
@@ -333,7 +341,7 @@ public class EOIRCameraController : MonoBehaviour
         }
 
         Vector2 rightStick;
-        if (rightController.TryGetFeatureValue(CommonUsages.primary2DAxis, out rightStick))
+        if (TryGetRightStickInput(out rightStick))
         {
             float horizontal = Mathf.Abs(rightStick.x) >= rightStickDeadzone ? rightStick.x : 0f;
             float vertical = Mathf.Abs(rightStick.y) >= rightStickDeadzone ? rightStick.y : 0f;
@@ -496,6 +504,23 @@ public class EOIRCameraController : MonoBehaviour
         }
 
         previousButtonState = currentButtonState;
+    }
+
+    private bool TryGetRightStickInput(out Vector2 rightStick)
+    {
+        rightStick = Vector2.zero;
+
+        if (!TryInitializeRightController())
+        {
+            return false;
+        }
+
+        if (rightController.TryGetFeatureValue(CommonUsages.primary2DAxis, out rightStick))
+        {
+            return true;
+        }
+
+        return rightController.TryGetFeatureValue(CommonUsages.secondary2DAxis, out rightStick);
     }
 
     /// <summary>

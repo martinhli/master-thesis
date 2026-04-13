@@ -98,13 +98,14 @@ public class UIManager : MonoBehaviour
     private Canvas scenarioDropdownCanvas;
     private Canvas hudCanvas;
     private Camera eoirReferenceCamera;
-    private ScenarioMetricsCollector metricsCollector;
+    private ScenarioMetricsManager metricsCollector;
 
     [Header("VR Left Controller Ray")]
     public bool showLeftControllerRay = true;
-    public float leftControllerRayLength = 4000f;
+    public float leftControllerRayLength = 20000f;
     public float leftControllerRayWidth = 0.006f;
     public float leftControllerRayHitMarkerSize = 0.02f;
+    public Vector3 leftControllerRayLocalEulerOffset = new Vector3(90f, 0f, 0f);
     public float leftControllerTriggerThreshold = 0.2f;
     public bool enableLeftGripScenarioSwitch = true;
     public float leftControllerGripThreshold = 0.55f;
@@ -144,10 +145,10 @@ public class UIManager : MonoBehaviour
             trackManager = FindFirstObjectByType<TrackManager>();
         }
 
-        metricsCollector = FindFirstObjectByType<ScenarioMetricsCollector>();
+        metricsCollector = FindFirstObjectByType<ScenarioMetricsManager>();
         if (metricsCollector == null)
         {
-            metricsCollector = gameObject.AddComponent<ScenarioMetricsCollector>();
+            metricsCollector = gameObject.AddComponent<ScenarioMetricsManager>();
         }
 
         ApplyContactListLayoutSettings();
@@ -1364,6 +1365,28 @@ public class UIManager : MonoBehaviour
         return currentTriggerState && !wasTriggerPressed;
     }
 
+    private bool TryIsLeftControllerTriggerHeld()
+    {
+        if (!TryInitializeLeftController())
+        {
+            return false;
+        }
+
+        bool triggerButtonPressed;
+        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
+        {
+            return triggerButtonPressed;
+        }
+
+        float triggerValue;
+        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            return false;
+        }
+
+        return triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
+    }
+
     private bool TryIsLeftControllerGripPressed()
     {
         if (!TryInitializeLeftController())
@@ -1538,8 +1561,9 @@ public class UIManager : MonoBehaviour
         }
 
         Vector3 origin = leftControllerTransform.position;
-        Vector3 direction = leftControllerTransform.forward;
+        Vector3 direction = (leftControllerTransform.rotation * Quaternion.Euler(leftControllerRayLocalEulerOffset)) * Vector3.forward;
         Vector3 endPoint = origin + direction * Mathf.Max(0.5f, leftControllerRayLength);
+        bool leftTriggerHeld = TryIsLeftControllerTriggerHeld();
 
         RaycastHit hit;
         bool hitSomething = Physics.Raycast(
@@ -1560,6 +1584,10 @@ public class UIManager : MonoBehaviour
         {
             leftControllerRayHitMarker.SetActive(false);
         }
+
+        Color rayColor = (hitSomething && leftTriggerHeld) ? leftControllerRayHitColor : leftControllerRayColor;
+        leftControllerRay.startColor = rayColor;
+        leftControllerRay.endColor = rayColor;
 
         leftControllerRay.enabled = true;
         leftControllerRay.SetPosition(0, origin);
