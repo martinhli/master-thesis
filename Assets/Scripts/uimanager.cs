@@ -90,27 +90,14 @@ public class UIManager : MonoBehaviour
     
     private InputDevice leftController;
     private bool leftControllerActive = false;
-    private bool previousLeftTriggerState = false;
     private bool previousLeftGripState = false;
-    private Transform leftControllerTransform;
-    private LineRenderer leftControllerRay;
-    private GameObject leftControllerRayHitMarker;
     private Canvas scenarioDropdownCanvas;
     private Canvas hudCanvas;
     private Camera eoirReferenceCamera;
     private ScenarioMetricsManager metricsCollector;
 
-    [Header("VR Left Controller Ray")]
-    public bool showLeftControllerRay = true;
-    public float leftControllerRayLength = 20000f;
-    public float leftControllerRayWidth = 0.006f;
-    public float leftControllerRayHitMarkerSize = 0.02f;
-    public Vector3 leftControllerRayLocalEulerOffset = new Vector3(90f, 0f, 0f);
-    public float leftControllerTriggerThreshold = 0.2f;
     public bool enableLeftGripScenarioSwitch = true;
     public float leftControllerGripThreshold = 0.55f;
-    public Color leftControllerRayColor = Color.cyan;
-    public Color leftControllerRayHitColor = Color.yellow;
 
     [Header("VR Dropdown Placement")]
     public bool lockScenarioDropdownToHeadset = true;
@@ -137,8 +124,6 @@ public class UIManager : MonoBehaviour
         HookScenarioDropdown();
         EnsureScenarioDropdownVisibleInVR();
         AlignMainCameraToEOIRSettings();
-
-        InitializeLeftControllerRayVisualizer();
 
         if (trackManager == null)
         {
@@ -190,8 +175,6 @@ public class UIManager : MonoBehaviour
 
     void LateUpdate()
     {
-        // Run after tracked-pose updates to avoid stale controller orientation.
-        UpdateLeftControllerRayVisualizer();
     }
 
     void InitializeUI()
@@ -350,7 +333,7 @@ public class UIManager : MonoBehaviour
                     "SCENARIO 3: FUSED UNCERTAINTY-AWARE",
                     "Use the fused AIS/radar labels and uncertainty cues to assess reliability of identified ships." +
                     "Use the EO/IR camera to identify the unknown contact." +
-                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [RIGHT TRIGGER].");
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [A].");
                 SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
         }
@@ -496,6 +479,14 @@ public class UIManager : MonoBehaviour
             return;
         }
 
+        // Copy core camera state so both views use the same render configuration.
+        mainCam.clearFlags = eoirCam.clearFlags;
+        mainCam.backgroundColor = eoirCam.backgroundColor;
+        mainCam.allowHDR = eoirCam.allowHDR;
+        mainCam.allowMSAA = eoirCam.allowMSAA;
+        mainCam.useOcclusionCulling = eoirCam.useOcclusionCulling;
+        mainCam.cullingMask = eoirCam.cullingMask;
+
         mainCam.nearClipPlane = Mathf.Max(0.03f, eoirCam.nearClipPlane);
         mainCam.farClipPlane = eoirCam.farClipPlane;
         mainCam.fieldOfView = eoirCam.fieldOfView;
@@ -504,9 +495,16 @@ public class UIManager : MonoBehaviour
         UniversalAdditionalCameraData eoirData = eoirCam.GetUniversalAdditionalCameraData();
         if (mainData != null && eoirData != null)
         {
+            mainData.renderShadows = eoirData.renderShadows;
+            mainData.antialiasing = eoirData.antialiasing;
+            mainData.antialiasingQuality = eoirData.antialiasingQuality;
+            mainData.stopNaN = eoirData.stopNaN;
+            mainData.dithering = eoirData.dithering;
             mainData.renderPostProcessing = eoirData.renderPostProcessing;
             mainData.volumeLayerMask = eoirData.volumeLayerMask;
             mainData.volumeTrigger = eoirData.volumeTrigger;
+            mainData.requiresColorOption = eoirData.requiresColorOption;
+            mainData.requiresDepthOption = eoirData.requiresDepthOption;
         }
     }
 
@@ -1183,38 +1181,44 @@ public class UIManager : MonoBehaviour
             confirmationPressed = true;
         }
         
-        // Check for VR left controller trigger input
-        if (TryIsLeftControllerTriggerPressed())
-        {
-            confirmationPressed = true;
-        }
-        
         if (confirmationPressed)
         {
             SimulatedShip clickedShip = RaycastDetectShip();
-            if (clickedShip != null)
-            {
-                SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
-                if (clickedShip == targetShip)
-                {
-                    string trackId = $"AIS_{clickedShip.mmsi}";
-                    OnShipConfirmed(trackId);
-                    AdvanceToNextAISTarget();
-                }
-                else
-                {
-                    SimulatedShip targetForError = aisBaselineTargets[currentAisTargetIndex];
-                    if (metricsCollector != null)
-                    {
-                        string selectedTrackId = string.IsNullOrEmpty(clickedShip.mmsi) ? clickedShip.shipName : $"AIS_{clickedShip.mmsi}";
-                        string expectedTrackId = string.IsNullOrEmpty(targetForError.mmsi) ? targetForError.shipName : $"AIS_{targetForError.mmsi}";
-                        metricsCollector.RegisterWrongSelection(selectedTrackId, expectedTrackId);
-                    }
-                    SetConfirmationStatus("REJECTED", $"Wrong target. Looking for MMSI {targetForError.mmsi}, not {clickedShip.mmsi}", rejectedColor);
-                    ScheduleStatusReset();
-                }
-            }
+            TryConfirmAisTargetFromSelection(clickedShip);
         }
+    }
+
+    public bool TryConfirmAisTargetFromSelection(SimulatedShip clickedShip)
+    {
+        if (scenario != StudyScenario.AISDeterministicBaseline)
+        {
+            return false;
+        }
+
+        if (clickedShip == null || aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
+        {
+            return false;
+        }
+
+        SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+        if (clickedShip == targetShip)
+        {
+            string trackId = string.IsNullOrEmpty(clickedShip.mmsi) ? clickedShip.shipName : $"AIS_{clickedShip.mmsi}";
+            OnShipConfirmed(trackId);
+            AdvanceToNextAISTarget();
+            return true;
+        }
+
+        if (metricsCollector != null)
+        {
+            string selectedTrackId = string.IsNullOrEmpty(clickedShip.mmsi) ? clickedShip.shipName : $"AIS_{clickedShip.mmsi}";
+            string expectedTrackId = string.IsNullOrEmpty(targetShip.mmsi) ? targetShip.shipName : $"AIS_{targetShip.mmsi}";
+            metricsCollector.RegisterWrongSelection(selectedTrackId, expectedTrackId);
+        }
+
+        SetConfirmationStatus("REJECTED", $"Wrong target. Looking for MMSI {targetShip.mmsi}, not {clickedShip.mmsi}", rejectedColor);
+        ScheduleStatusReset();
+        return false;
     }
 
     private SimulatedShip RaycastDetectShip()
@@ -1301,7 +1305,6 @@ public class UIManager : MonoBehaviour
         if (leftController.isValid)
         {
             leftControllerActive = true;
-            previousLeftTriggerState = false;
             previousLeftGripState = false;
             return true;
         }
@@ -1331,62 +1334,10 @@ public class UIManager : MonoBehaviour
 
         leftController = devices[0];
         leftControllerActive = true;
-        previousLeftTriggerState = false;
         previousLeftGripState = false;
         return leftController.isValid;
     }
     
-    private bool TryIsLeftControllerTriggerPressed()
-    {
-        if (!TryInitializeLeftController())
-        {
-            previousLeftTriggerState = false;
-            return false;
-        }
-
-        bool triggerButtonPressed;
-        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed) && triggerButtonPressed)
-        {
-            bool wasButtonPressed = previousLeftTriggerState;
-            previousLeftTriggerState = true;
-            return !wasButtonPressed;
-        }
-
-        float triggerValue;
-        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
-        {
-            previousLeftTriggerState = false;
-            return false;
-        }
-
-        bool currentTriggerState = triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
-        bool wasTriggerPressed = previousLeftTriggerState;
-        previousLeftTriggerState = currentTriggerState;
-        return currentTriggerState && !wasTriggerPressed;
-    }
-
-    private bool TryIsLeftControllerTriggerHeld()
-    {
-        if (!TryInitializeLeftController())
-        {
-            return false;
-        }
-
-        bool triggerButtonPressed;
-        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
-        {
-            return triggerButtonPressed;
-        }
-
-        float triggerValue;
-        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
-        {
-            return false;
-        }
-
-        return triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
-    }
-
     private bool TryIsLeftControllerGripPressed()
     {
         if (!TryInitializeLeftController())
@@ -1436,162 +1387,6 @@ public class UIManager : MonoBehaviour
             UpdateProgress();
             UpdateTimer();
         }
-    }
-
-    private void InitializeLeftControllerRayVisualizer()
-    {
-        if (!showLeftControllerRay)
-        {
-            return;
-        }
-
-        TryResolveLeftControllerTransform();
-
-        if (leftControllerRay == null)
-        {
-            GameObject lineObject = new GameObject("LeftControllerRay");
-            leftControllerRay = lineObject.AddComponent<LineRenderer>();
-            leftControllerRay.useWorldSpace = true;
-            leftControllerRay.positionCount = 2;
-            leftControllerRay.startWidth = leftControllerRayWidth;
-            leftControllerRay.endWidth = leftControllerRayWidth;
-            leftControllerRay.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            leftControllerRay.receiveShadows = false;
-            leftControllerRay.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
-            leftControllerRay.numCornerVertices = 4;
-            leftControllerRay.numCapVertices = 4;
-            leftControllerRay.textureMode = LineTextureMode.Stretch;
-
-            Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
-            if (unlitShader == null)
-            {
-                unlitShader = Shader.Find("Sprites/Default");
-            }
-
-            if (unlitShader != null)
-            {
-                Material lineMaterial = new Material(unlitShader);
-                lineMaterial.color = leftControllerRayColor;
-                leftControllerRay.material = lineMaterial;
-            }
-
-            leftControllerRay.startColor = leftControllerRayColor;
-            leftControllerRay.endColor = leftControllerRayColor;
-            leftControllerRay.enabled = false;
-        }
-
-        if (leftControllerRayHitMarker == null)
-        {
-            leftControllerRayHitMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            leftControllerRayHitMarker.name = "LeftControllerRayHitMarker";
-            leftControllerRayHitMarker.transform.localScale = Vector3.one * leftControllerRayHitMarkerSize;
-
-            Collider markerCollider = leftControllerRayHitMarker.GetComponent<Collider>();
-            if (markerCollider != null)
-            {
-                Destroy(markerCollider);
-            }
-
-            Renderer markerRenderer = leftControllerRayHitMarker.GetComponent<Renderer>();
-            if (markerRenderer != null)
-            {
-                Shader markerShader = Shader.Find("Universal Render Pipeline/Unlit");
-                if (markerShader == null)
-                {
-                    markerShader = Shader.Find("Sprites/Default");
-                }
-
-                if (markerShader != null)
-                {
-                    Material markerMaterial = new Material(markerShader);
-                    markerMaterial.color = leftControllerRayHitColor;
-                    markerRenderer.material = markerMaterial;
-                }
-                else
-                {
-                    markerRenderer.material.color = leftControllerRayHitColor;
-                }
-            }
-
-            leftControllerRayHitMarker.SetActive(false);
-        }
-    }
-
-    private bool TryResolveLeftControllerTransform()
-    {
-        if (leftControllerTransform != null)
-        {
-            return true;
-        }
-
-        GameObject leftControllerObject = GameObject.Find("Left Controller");
-        if (leftControllerObject != null)
-        {
-            leftControllerTransform = leftControllerObject.transform;
-            return true;
-        }
-
-        return false;
-    }
-
-    private void UpdateLeftControllerRayVisualizer()
-    {
-        if (leftControllerRay == null || leftControllerRayHitMarker == null)
-        {
-            InitializeLeftControllerRayVisualizer();
-        }
-
-        if (leftControllerRay == null || leftControllerRayHitMarker == null)
-        {
-            return;
-        }
-
-        if (!showLeftControllerRay)
-        {
-            leftControllerRay.enabled = false;
-            leftControllerRayHitMarker.SetActive(false);
-            return;
-        }
-
-        if (!TryResolveLeftControllerTransform())
-        {
-            leftControllerRay.enabled = false;
-            leftControllerRayHitMarker.SetActive(false);
-            return;
-        }
-
-        Vector3 origin = leftControllerTransform.position;
-        Vector3 direction = (leftControllerTransform.rotation * Quaternion.Euler(leftControllerRayLocalEulerOffset)) * Vector3.forward;
-        Vector3 endPoint = origin + direction * Mathf.Max(0.5f, leftControllerRayLength);
-        bool leftTriggerHeld = TryIsLeftControllerTriggerHeld();
-
-        RaycastHit hit;
-        bool hitSomething = Physics.Raycast(
-            origin,
-            direction,
-            out hit,
-            Mathf.Max(0.5f, leftControllerRayLength),
-            Physics.DefaultRaycastLayers,
-            QueryTriggerInteraction.Ignore);
-
-        if (hitSomething)
-        {
-            endPoint = hit.point;
-            leftControllerRayHitMarker.SetActive(true);
-            leftControllerRayHitMarker.transform.position = hit.point;
-        }
-        else
-        {
-            leftControllerRayHitMarker.SetActive(false);
-        }
-
-        Color rayColor = (hitSomething && leftTriggerHeld) ? leftControllerRayHitColor : leftControllerRayColor;
-        leftControllerRay.startColor = rayColor;
-        leftControllerRay.endColor = rayColor;
-
-        leftControllerRay.enabled = true;
-        leftControllerRay.SetPosition(0, origin);
-        leftControllerRay.SetPosition(1, endPoint);
     }
 
 }

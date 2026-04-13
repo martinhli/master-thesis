@@ -149,24 +149,61 @@ public class EOIRCameraController : MonoBehaviour
     [Range(0.01f, 0.5f)]
     public float rightStickDeadzone = 0.2f;
 
+    [Tooltip("Trigger threshold used when reading the right trigger as a capture input")]
+    [Range(0.05f, 1f)]
+    public float rightTriggerThreshold = 0.2f;
+
     [Tooltip("Optional multiplier for right joystick pan/tilt speed")]
     public float rightStickSensitivity = 1f;
 
     [Tooltip("When enabled, EOIR stick/A/B input only works while holding right grip")]
-    public bool requireRightGripForEOIRControl = true;
+    public bool requireRightGripForEOIRControl = false;
 
     [Tooltip("Fallback threshold if grip is exposed as an axis instead of a button")]
     [Range(0.1f, 1f)]
     public float rightGripAxisThreshold = 0.6f;
 
+    [Header("Quest 2 Left Controller Ray")]
+    [Tooltip("Show a debug ray for the left controller in VR")]
+    public bool showLeftControllerRay = true;
+
+    [Tooltip("Ray length for the left controller selection ray")]
+    public float leftControllerRayLength = 20000f;
+
+    [Tooltip("Ray width for the left controller line renderer")]
+    public float leftControllerRayWidth = 0.006f;
+
+    [Tooltip("Hit marker size for the left controller ray")]
+    public float leftControllerRayHitMarkerSize = 0.02f;
+
+    [Tooltip("Local rotation offset that aligns the ray with the controller forward direction")]
+    public Vector3 leftControllerRayLocalEulerOffset = new Vector3(90f, 0f, 0f);
+
+    [Tooltip("Trigger threshold used when reading the left trigger as a confirm input")]
+    [Range(0.05f, 1f)]
+    public float leftControllerTriggerThreshold = 0.2f;
+
+    [Tooltip("Ray color when the left controller ray is idle")]
+    public Color leftControllerRayColor = Color.cyan;
+
+    [Tooltip("Ray color when the left controller ray is hitting something while the trigger is held")]
+    public Color leftControllerRayHitColor = Color.yellow;
+
     private InputDevice rightController;
+    private InputDevice leftController;
     private bool previousAButtonState;
     private bool previousBButtonState;
+    private bool previousRightTriggerState;
+    private bool previousLeftTriggerState;
     private bool rightControllerActive;
+    private bool leftControllerActive;
     private string lastConfirmedTrackId;
     private Quaternion initialLocalRotation;
     private float initialTilt;
     private float initialPan;
+    private Transform leftControllerTransform;
+    private LineRenderer leftControllerRay;
+    private GameObject leftControllerRayHitMarker;
 
     // Event to notify when a ship is detected
     public event System.Action<SimulatedShip> OnShipDetected;
@@ -202,14 +239,25 @@ public class EOIRCameraController : MonoBehaviour
             EnsureYoloDatasetFolders();
         }
 
+        if (useVRControllerInput)
+        {
+            TryInitializeLeftController();
+            InitializeLeftControllerRayVisualizer();
+        }
         TryInitializeRightController();
     }
 
     void Update()
     {
+        HandleLeftControllerAISInput();
         HandleCameraControl();
         UpdateCamera();
         HandleCapture();
+    }
+
+    void LateUpdate()
+    {
+        UpdateLeftControllerRayVisualizer();
     }
 
     /// <summary>
@@ -304,11 +352,13 @@ public class EOIRCameraController : MonoBehaviour
             if (IsEOIRControlActive())
             {
                 capturePressed |= IsRightControllerButtonDown(CommonUsages.primaryButton, ref previousAButtonState);
+                capturePressed |= IsRightControllerTriggerDown(ref previousRightTriggerState);
             }
             else
             {
                 // Keep edge-trigger state in sync so A does not fire when grip is pressed later.
                 SyncRightControllerButtonState(CommonUsages.primaryButton, ref previousAButtonState);
+                SyncRightControllerTriggerState(ref previousRightTriggerState);
             }
 
         }
@@ -321,6 +371,30 @@ public class EOIRCameraController : MonoBehaviour
             }
             FlashScreen();
             CaptureImage();
+        }
+    }
+
+    private void HandleLeftControllerAISInput()
+    {
+        if (!useVRControllerInput || uiManager == null)
+        {
+            return;
+        }
+
+        if (uiManager.scenario != UIManager.StudyScenario.AISDeterministicBaseline)
+        {
+            return;
+        }
+
+        if (!TryIsLeftControllerTriggerPressed())
+        {
+            return;
+        }
+
+        SimulatedShip clickedShip = RaycastDetectShipFromLeftController();
+        if (clickedShip != null)
+        {
+            uiManager.TryConfirmAisTargetFromSelection(clickedShip);
         }
     }
 
@@ -428,6 +502,7 @@ public class EOIRCameraController : MonoBehaviour
         {
             previousAButtonState = false;
             previousBButtonState = false;
+            previousRightTriggerState = false;
             rightControllerActive = true;
             return true;
         }
@@ -465,6 +540,7 @@ public class EOIRCameraController : MonoBehaviour
         rightControllerActive = true;
         previousAButtonState = false;
         previousBButtonState = false;
+        previousRightTriggerState = false;
         return rightController.isValid;
     }
 
@@ -506,6 +582,60 @@ public class EOIRCameraController : MonoBehaviour
         previousButtonState = currentButtonState;
     }
 
+    private bool IsRightControllerTriggerDown(ref bool previousTriggerState)
+    {
+        if (!TryInitializeRightController())
+        {
+            previousTriggerState = false;
+            return false;
+        }
+
+        bool triggerButtonPressed;
+        if (rightController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
+        {
+            bool pressedThisFrame = triggerButtonPressed && !previousTriggerState;
+            previousTriggerState = triggerButtonPressed;
+            return pressedThisFrame;
+        }
+
+        float triggerValue;
+        if (!rightController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            previousTriggerState = false;
+            return false;
+        }
+
+        bool currentTriggerState = triggerValue > Mathf.Clamp01(rightTriggerThreshold);
+        bool pressedThisFrameFallback = currentTriggerState && !previousTriggerState;
+        previousTriggerState = currentTriggerState;
+        return pressedThisFrameFallback;
+    }
+
+    private void SyncRightControllerTriggerState(ref bool previousTriggerState)
+    {
+        if (!TryInitializeRightController())
+        {
+            previousTriggerState = false;
+            return;
+        }
+
+        bool triggerButtonPressed;
+        if (rightController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
+        {
+            previousTriggerState = triggerButtonPressed;
+            return;
+        }
+
+        float triggerValue;
+        if (!rightController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            previousTriggerState = false;
+            return;
+        }
+
+        previousTriggerState = triggerValue > Mathf.Clamp01(rightTriggerThreshold);
+    }
+
     private bool TryGetRightStickInput(out Vector2 rightStick)
     {
         rightStick = Vector2.zero;
@@ -521,6 +651,309 @@ public class EOIRCameraController : MonoBehaviour
         }
 
         return rightController.TryGetFeatureValue(CommonUsages.secondary2DAxis, out rightStick);
+    }
+
+    private bool TryInitializeLeftController()
+    {
+        if (leftController.isValid)
+        {
+            return true;
+        }
+
+        leftController = InputDevices.GetDeviceAtXRNode(XRNode.LeftHand);
+        if (leftController.isValid)
+        {
+            previousLeftTriggerState = false;
+            leftControllerActive = true;
+            return true;
+        }
+
+        List<InputDevice> devices = new List<InputDevice>();
+        InputDevices.GetDevicesWithCharacteristics(
+            InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.HeldInHand | InputDeviceCharacteristics.Left,
+            devices);
+
+        if (devices.Count == 0)
+        {
+            InputDevices.GetDevicesWithCharacteristics(
+                InputDeviceCharacteristics.Controller | InputDeviceCharacteristics.Left,
+                devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Left, devices);
+        }
+
+        if (devices.Count == 0)
+        {
+            if (!leftControllerActive)
+            {
+                Debug.LogWarning("[EO/IR] No left-hand controller found for EO/IR ray input!");
+            }
+
+            leftControllerActive = false;
+            return false;
+        }
+
+        leftController = devices[0];
+        previousLeftTriggerState = false;
+        leftControllerActive = true;
+        return leftController.isValid;
+    }
+
+    private bool TryIsLeftControllerTriggerPressed()
+    {
+        if (!TryInitializeLeftController())
+        {
+            previousLeftTriggerState = false;
+            return false;
+        }
+
+        bool triggerButtonPressed;
+        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
+        {
+            bool pressedThisFrame = triggerButtonPressed && !previousLeftTriggerState;
+            previousLeftTriggerState = triggerButtonPressed;
+            return pressedThisFrame;
+        }
+
+        float triggerValue;
+        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            previousLeftTriggerState = false;
+            return false;
+        }
+
+        bool currentTriggerState = triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
+        bool pressedThisFrameFallback = currentTriggerState && !previousLeftTriggerState;
+        previousLeftTriggerState = currentTriggerState;
+        return pressedThisFrameFallback;
+    }
+
+    private bool TryIsLeftControllerTriggerHeld()
+    {
+        if (!TryInitializeLeftController())
+        {
+            return false;
+        }
+
+        bool triggerButtonPressed;
+        if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerButtonPressed))
+        {
+            return triggerButtonPressed;
+        }
+
+        float triggerValue;
+        if (!leftController.TryGetFeatureValue(CommonUsages.trigger, out triggerValue))
+        {
+            return false;
+        }
+
+        return triggerValue > Mathf.Clamp01(leftControllerTriggerThreshold);
+    }
+
+    private SimulatedShip RaycastDetectShipFromLeftController()
+    {
+        if (!TryResolveLeftControllerTransform())
+        {
+            return null;
+        }
+
+        Vector3 origin = leftControllerTransform.position;
+        Vector3 direction = (leftControllerTransform.rotation * Quaternion.Euler(leftControllerRayLocalEulerOffset)) * Vector3.forward;
+        RaycastHit[] hits = Physics.RaycastAll(
+            origin,
+            direction,
+            Mathf.Max(0.5f, leftControllerRayLength),
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        if (hits == null || hits.Length == 0)
+        {
+            return null;
+        }
+
+        SimulatedShip bestShip = null;
+        float bestDistance = float.MaxValue;
+
+        for (int i = 0; i < hits.Length; i++)
+        {
+            SimulatedShip ship = ResolveShipFromHit(hits[i]);
+            if (ship == null)
+            {
+                continue;
+            }
+
+            if (hits[i].distance < bestDistance)
+            {
+                bestDistance = hits[i].distance;
+                bestShip = ship;
+            }
+        }
+
+        return bestShip;
+    }
+
+    private void InitializeLeftControllerRayVisualizer()
+    {
+        if (!showLeftControllerRay)
+        {
+            return;
+        }
+
+        TryResolveLeftControllerTransform();
+
+        if (leftControllerRay == null)
+        {
+            GameObject lineObject = new GameObject("LeftControllerRay");
+            leftControllerRay = lineObject.AddComponent<LineRenderer>();
+            leftControllerRay.useWorldSpace = true;
+            leftControllerRay.positionCount = 2;
+            leftControllerRay.startWidth = leftControllerRayWidth;
+            leftControllerRay.endWidth = leftControllerRayWidth;
+            leftControllerRay.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            leftControllerRay.receiveShadows = false;
+            leftControllerRay.motionVectorGenerationMode = MotionVectorGenerationMode.ForceNoMotion;
+            leftControllerRay.numCornerVertices = 4;
+            leftControllerRay.numCapVertices = 4;
+            leftControllerRay.textureMode = LineTextureMode.Stretch;
+
+            Shader unlitShader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (unlitShader == null)
+            {
+                unlitShader = Shader.Find("Sprites/Default");
+            }
+
+            if (unlitShader != null)
+            {
+                Material lineMaterial = new Material(unlitShader);
+                lineMaterial.color = leftControllerRayColor;
+                leftControllerRay.material = lineMaterial;
+            }
+
+            leftControllerRay.startColor = leftControllerRayColor;
+            leftControllerRay.endColor = leftControllerRayColor;
+            leftControllerRay.enabled = false;
+        }
+
+        if (leftControllerRayHitMarker == null)
+        {
+            leftControllerRayHitMarker = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            leftControllerRayHitMarker.name = "LeftControllerRayHitMarker";
+            leftControllerRayHitMarker.transform.localScale = Vector3.one * leftControllerRayHitMarkerSize;
+
+            Collider markerCollider = leftControllerRayHitMarker.GetComponent<Collider>();
+            if (markerCollider != null)
+            {
+                Destroy(markerCollider);
+            }
+
+            Renderer markerRenderer = leftControllerRayHitMarker.GetComponent<Renderer>();
+            if (markerRenderer != null)
+            {
+                Shader markerShader = Shader.Find("Universal Render Pipeline/Unlit");
+                if (markerShader == null)
+                {
+                    markerShader = Shader.Find("Sprites/Default");
+                }
+
+                if (markerShader != null)
+                {
+                    Material markerMaterial = new Material(markerShader);
+                    markerMaterial.color = leftControllerRayHitColor;
+                    markerRenderer.material = markerMaterial;
+                }
+                else
+                {
+                    markerRenderer.material.color = leftControllerRayHitColor;
+                }
+            }
+
+            leftControllerRayHitMarker.SetActive(false);
+        }
+    }
+
+    private bool TryResolveLeftControllerTransform()
+    {
+        if (leftControllerTransform != null)
+        {
+            return true;
+        }
+
+        GameObject leftControllerObject = GameObject.Find("Left Controller");
+        if (leftControllerObject != null)
+        {
+            leftControllerTransform = leftControllerObject.transform;
+            return true;
+        }
+
+        return false;
+    }
+
+    private void UpdateLeftControllerRayVisualizer()
+    {
+        if (!useVRControllerInput)
+        {
+            return;
+        }
+
+        if (leftControllerRay == null || leftControllerRayHitMarker == null)
+        {
+            InitializeLeftControllerRayVisualizer();
+        }
+
+        if (leftControllerRay == null || leftControllerRayHitMarker == null)
+        {
+            return;
+        }
+
+        if (!showLeftControllerRay)
+        {
+            leftControllerRay.enabled = false;
+            leftControllerRayHitMarker.SetActive(false);
+            return;
+        }
+
+        if (!TryResolveLeftControllerTransform())
+        {
+            leftControllerRay.enabled = false;
+            leftControllerRayHitMarker.SetActive(false);
+            return;
+        }
+
+        Vector3 origin = leftControllerTransform.position;
+        Vector3 direction = (leftControllerTransform.rotation * Quaternion.Euler(leftControllerRayLocalEulerOffset)) * Vector3.forward;
+        Vector3 endPoint = origin + direction * Mathf.Max(0.5f, leftControllerRayLength);
+        bool leftTriggerHeld = TryIsLeftControllerTriggerHeld();
+
+        RaycastHit hit;
+        bool hitSomething = Physics.Raycast(
+            origin,
+            direction,
+            out hit,
+            Mathf.Max(0.5f, leftControllerRayLength),
+            Physics.DefaultRaycastLayers,
+            QueryTriggerInteraction.Ignore);
+
+        if (hitSomething)
+        {
+            endPoint = hit.point;
+            leftControllerRayHitMarker.SetActive(true);
+            leftControllerRayHitMarker.transform.position = hit.point;
+        }
+        else
+        {
+            leftControllerRayHitMarker.SetActive(false);
+        }
+
+        Color rayColor = (hitSomething && leftTriggerHeld) ? leftControllerRayHitColor : leftControllerRayColor;
+        leftControllerRay.startColor = rayColor;
+        leftControllerRay.endColor = rayColor;
+
+        leftControllerRay.enabled = true;
+        leftControllerRay.SetPosition(0, origin);
+        leftControllerRay.SetPosition(1, endPoint);
     }
 
     /// <summary>
