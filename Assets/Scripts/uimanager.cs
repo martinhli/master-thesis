@@ -91,22 +91,23 @@ public class UIManager : MonoBehaviour
     private InputDevice leftController;
     private bool leftControllerActive = false;
     private bool previousLeftTriggerState = false;
+    private bool previousLeftGripState = false;
     private Transform leftControllerTransform;
     private LineRenderer leftControllerRay;
     private GameObject leftControllerRayHitMarker;
     private Canvas scenarioDropdownCanvas;
     private Canvas hudCanvas;
     private Camera eoirReferenceCamera;
+    private ScenarioMetricsCollector metricsCollector;
 
     [Header("VR Left Controller Ray")]
     public bool showLeftControllerRay = true;
     public float leftControllerRayLength = 4000f;
     public float leftControllerRayWidth = 0.006f;
     public float leftControllerRayHitMarkerSize = 0.02f;
-    public Vector3 leftControllerRayEulerOffset = Vector3.zero;
-    public Vector3 leftControllerRayLocalDirection = Vector3.forward;
-    public bool autoFlipLeftRayAwayFromHead = false;
     public float leftControllerTriggerThreshold = 0.2f;
+    public bool enableLeftGripScenarioSwitch = true;
+    public float leftControllerGripThreshold = 0.55f;
     public Color leftControllerRayColor = Color.cyan;
     public Color leftControllerRayHitColor = Color.yellow;
 
@@ -143,6 +144,12 @@ public class UIManager : MonoBehaviour
             trackManager = FindFirstObjectByType<TrackManager>();
         }
 
+        metricsCollector = FindFirstObjectByType<ScenarioMetricsCollector>();
+        if (metricsCollector == null)
+        {
+            metricsCollector = gameObject.AddComponent<ScenarioMetricsCollector>();
+        }
+
         ApplyContactListLayoutSettings();
 
         // If auto-start is enabled, check for existing tracks and start task if any are found
@@ -157,6 +164,7 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        HandleScenarioSwitchInput();
         EnsureScenarioDropdownVisibleInVR();
         AlignMainCameraToEOIRSettings();
 
@@ -501,28 +509,6 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private bool TryGetLeftControllerRotation(out Quaternion rotation)
-    {
-        rotation = Quaternion.identity;
-        if (!TryInitializeLeftController())
-        {
-            return false;
-        }
-
-        if (leftController.TryGetFeatureValue(CommonUsages.deviceRotation, out rotation))
-        {
-            return true;
-        }
-
-        if (leftControllerTransform != null)
-        {
-            rotation = leftControllerTransform.rotation;
-            return true;
-        }
-
-        return false;
-    }
-
     public void OnScenarioDropdownChanged(int index)
     {
         StudyScenario selectedScenario = (StudyScenario)Mathf.Clamp(index + 1, 1, 3);
@@ -597,6 +583,12 @@ public class UIManager : MonoBehaviour
         radarContacts = contacts;
         totalContacts = radarContacts.Count;
         RefreshRequiredTargetsFromScene();
+
+        if (metricsCollector != null)
+        {
+            metricsCollector.BeginTask(scenario.ToString());
+            RegisterTrackAppearances(radarContacts);
+        }
         
         // Initialize AIS Baseline targets if in AIS scenario
         if (scenario == StudyScenario.AISDeterministicBaseline)
@@ -612,6 +604,25 @@ public class UIManager : MonoBehaviour
         UpdateTimer();
 
         Debug.Log($"[UIManager] Task started with {totalContacts} contacts.");
+    }
+
+    private void RegisterTrackAppearances(List<Track> contacts)
+    {
+        if (metricsCollector == null || contacts == null)
+        {
+            return;
+        }
+
+        for (int i = 0; i < contacts.Count; i++)
+        {
+            Track track = contacts[i];
+            if (track == null || string.IsNullOrEmpty(track.trackid))
+            {
+                continue;
+            }
+
+            metricsCollector.RegisterTargetAppearance(track.trackid);
+        }
     }
 
     public void SetTaskInstructions(string title, string instructions)
@@ -919,6 +930,11 @@ public class UIManager : MonoBehaviour
             : $"All contacts confirmed in {minutes:00}:{seconds:00}",
         confirmedColor);
 
+        if (metricsCollector != null)
+        {
+            metricsCollector.EndTask(true);
+        }
+
         Debug.Log($"[UIManager] Task complete in {minutes:00}:{seconds:00}. Contacts confirmed: {confirmedContacts}/{totalContacts}");
     }
 
@@ -946,6 +962,10 @@ public class UIManager : MonoBehaviour
     {
         EnsureTaskStarted();
         SetConfirmationStatus("CONFIRMED", "Visual contact verified", confirmedColor);
+        if (metricsCollector != null)
+        {
+            metricsCollector.RegisterCorrectConfirmation(trackID);
+        }
         UpdateContactStatus(trackID, true);
         ScheduleStatusReset();
     }
@@ -954,6 +974,10 @@ public class UIManager : MonoBehaviour
     {
         EnsureTaskStarted();
         SetConfirmationStatus("REJECTED", "False alarm or missed detection", rejectedColor);
+        if (metricsCollector != null)
+        {
+            metricsCollector.RegisterWrongConfirmation(trackID, "wrong_confirmation");
+        }
         UpdateContactStatus(trackID, false);
         ScheduleStatusReset();
     }
@@ -1081,6 +1105,7 @@ public class UIManager : MonoBehaviour
         List<Track> latestContacts = GetScenarioContactsFromTrackManager();
         radarContacts = latestContacts;
         totalContacts = radarContacts.Count;
+        RegisterTrackAppearances(radarContacts);
         PopulateContactList();
     }
 
@@ -1178,6 +1203,12 @@ public class UIManager : MonoBehaviour
                 else
                 {
                     SimulatedShip targetForError = aisBaselineTargets[currentAisTargetIndex];
+                    if (metricsCollector != null)
+                    {
+                        string selectedTrackId = string.IsNullOrEmpty(clickedShip.mmsi) ? clickedShip.shipName : $"AIS_{clickedShip.mmsi}";
+                        string expectedTrackId = string.IsNullOrEmpty(targetForError.mmsi) ? targetForError.shipName : $"AIS_{targetForError.mmsi}";
+                        metricsCollector.RegisterWrongSelection(selectedTrackId, expectedTrackId);
+                    }
                     SetConfirmationStatus("REJECTED", $"Wrong target. Looking for MMSI {targetForError.mmsi}, not {clickedShip.mmsi}", rejectedColor);
                     ScheduleStatusReset();
                 }
@@ -1219,6 +1250,27 @@ public class UIManager : MonoBehaviour
         return bestShip;
     }
 
+    private void HandleScenarioSwitchInput()
+    {
+        if (!enableLeftGripScenarioSwitch)
+        {
+            return;
+        }
+
+        if (!TryIsLeftControllerGripPressed())
+        {
+            return;
+        }
+
+        int nextScenarioIndex = (((int)scenario - 1) + 1) % 3;
+        if (scenarioDropdown != null)
+        {
+            scenarioDropdown.SetValueWithoutNotify(nextScenarioIndex);
+        }
+
+        OnScenarioDropdownChanged(nextScenarioIndex);
+    }
+
     private void AdvanceToNextAISTarget()
     {
         currentAisTargetIndex++;
@@ -1249,6 +1301,7 @@ public class UIManager : MonoBehaviour
         {
             leftControllerActive = true;
             previousLeftTriggerState = false;
+            previousLeftGripState = false;
             return true;
         }
 
@@ -1278,6 +1331,7 @@ public class UIManager : MonoBehaviour
         leftController = devices[0];
         leftControllerActive = true;
         previousLeftTriggerState = false;
+        previousLeftGripState = false;
         return leftController.isValid;
     }
     
@@ -1308,6 +1362,35 @@ public class UIManager : MonoBehaviour
         bool wasTriggerPressed = previousLeftTriggerState;
         previousLeftTriggerState = currentTriggerState;
         return currentTriggerState && !wasTriggerPressed;
+    }
+
+    private bool TryIsLeftControllerGripPressed()
+    {
+        if (!TryInitializeLeftController())
+        {
+            previousLeftGripState = false;
+            return false;
+        }
+
+        bool gripButtonPressed;
+        if (leftController.TryGetFeatureValue(CommonUsages.gripButton, out gripButtonPressed))
+        {
+            bool pressedThisFrame = gripButtonPressed && !previousLeftGripState;
+            previousLeftGripState = gripButtonPressed;
+            return pressedThisFrame;
+        }
+
+        float gripValue;
+        if (!leftController.TryGetFeatureValue(CommonUsages.grip, out gripValue))
+        {
+            previousLeftGripState = false;
+            return false;
+        }
+
+        bool currentGripState = gripValue > Mathf.Clamp01(leftControllerGripThreshold);
+        bool pressedThisFrameFallback = currentGripState && !previousLeftGripState;
+        previousLeftGripState = currentGripState;
+        return pressedThisFrameFallback;
     }
 
     private void EnsureAISBaselineReady()
@@ -1455,34 +1538,7 @@ public class UIManager : MonoBehaviour
         }
 
         Vector3 origin = leftControllerTransform.position;
-        Vector3 localDirection = leftControllerRayLocalDirection.sqrMagnitude > 0.0001f
-            ? leftControllerRayLocalDirection.normalized
-            : Vector3.forward;
-
-        Quaternion controllerRotation;
-        Vector3 direction;
-        if (TryGetLeftControllerRotation(out controllerRotation))
-        {
-            direction = controllerRotation * localDirection;
-        }
-        else
-        {
-            direction = leftControllerTransform.TransformDirection(localDirection);
-        }
-
-        direction = Quaternion.Euler(leftControllerRayEulerOffset) * direction;
-
-        Camera mainCam = Camera.main;
-        if (autoFlipLeftRayAwayFromHead && mainCam != null)
-        {
-            // If the ray is generally opposite to head-forward, flip it to avoid backwards pointing.
-            if (Vector3.Dot(direction, mainCam.transform.forward) < -0.15f)
-            {
-                direction = -direction;
-            }
-        }
-
-        direction.Normalize();
+        Vector3 direction = leftControllerTransform.forward;
         Vector3 endPoint = origin + direction * Mathf.Max(0.5f, leftControllerRayLength);
 
         RaycastHit hit;
