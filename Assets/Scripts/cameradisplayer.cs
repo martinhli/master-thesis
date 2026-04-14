@@ -15,7 +15,7 @@ public class cameradisplayer : MonoBehaviour
     public GameObject crosshairPanel;
     public GameObject reticlePanel;
     public TextMeshProUGUI modeText;
-    public TextMeshProUGUI zoomText;
+    public TextMeshProUGUI directionText;
     public TextMeshProUGUI rangeText;
     public TextMeshProUGUI distanceText;
     public TextMeshProUGUI timeText;
@@ -75,13 +75,29 @@ public class cameradisplayer : MonoBehaviour
     {
         if (eoirCamera == null) return;
         
-        // Update mode
+        // Update camera mode
         if (modeText != null)
             modeText.text = $"MODE: {cameraMode}";
         
-        // Update zoom
-        if (zoomText != null)
-            zoomText.text = $"FOV: {eoirCamera.fieldOfView:F1}°";
+        // Update direction mode
+        if (directionText != null)
+        {
+            Vector3 forwardFlat = Vector3.ProjectOnPlane(eoirCamera.transform.forward, Vector3.up);
+            if (forwardFlat.sqrMagnitude > 0.0001f)
+            {
+                float bearing = Mathf.Atan2(forwardFlat.x, forwardFlat.z) * Mathf.Rad2Deg;
+                if (bearing < 0f)
+                {
+                    bearing += 360f;
+                }
+
+                directionText.text = $"BRG: {bearing:000}° ({GetCompassNotation(bearing)})";
+            }
+            else
+            {
+                directionText.text = "BRG: ---";
+            }
+        }
         
         // Update range mode
         if (rangeText != null)
@@ -117,6 +133,14 @@ public class cameradisplayer : MonoBehaviour
             renderTexture.Release();
             Destroy(renderTexture);
         }
+    }
+
+    private static string GetCompassNotation(float bearingDegrees)
+    {
+        // 8-point compass notation for quick operator readability.
+        string[] points = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+        int index = Mathf.RoundToInt(Mathf.Repeat(bearingDegrees, 360f) / 45f) % points.Length;
+        return points[index];
     }
     
     // Public control methods

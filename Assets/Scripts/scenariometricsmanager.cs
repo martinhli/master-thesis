@@ -13,6 +13,13 @@ public class ScenarioMetricsManager : MonoBehaviour
     public string outputFolderName = "StudyMetrics";
     public string outputFilePrefix = "scenario_metrics";
 
+    [Header("Participant Metadata")]
+    public string participantId = "P001";
+    public bool persistParticipantCounter = true;
+    public string participantIdPrefix = "P";
+    [Range(1, 6)]
+    public int participantIdPadding = 3;
+
     private class TargetState
     {
         public float firstSeenTime;
@@ -33,16 +40,21 @@ public class ScenarioMetricsManager : MonoBehaviour
     private int wrongConfirmations;
     private int missedTargets;
 
+    private const string ParticipantCounterPrefsKey = "ScenarioMetrics.ParticipantCounter";
+
     private void Awake()
     {
         sessionId = DateTime.UtcNow.ToString("yyyyMMdd_HHmmss");
-        csvRows.Clear();
-        csvRows.Add("timestamp_utc,scenario,event,track_id,expected_track_id,value,error_type");
+        InitializeParticipantId();
+        ResetCsvBuffer();
     }
 
     public void BeginTask(string scenarioName)
     {
         currentScenario = string.IsNullOrEmpty(scenarioName) ? "Unknown" : scenarioName;
+
+        // Keep one clean CSV per task/scenario run.
+        ResetCsvBuffer();
 
         taskRunning = true;
         targetStates.Clear();
@@ -220,7 +232,13 @@ public class ScenarioMetricsManager : MonoBehaviour
     {
         string timestamp = DateTime.UtcNow.ToString("o");
         csvRows.Add(
-            $"{EscapeCsv(timestamp)},{EscapeCsv(currentScenario)},{EscapeCsv(eventName)},{EscapeCsv(trackId)},{EscapeCsv(expectedTrackId)},{EscapeCsv(value)},{EscapeCsv(errorType)}");
+            $"{EscapeCsv(timestamp)},{EscapeCsv(participantId)},{EscapeCsv(sessionId)},{EscapeCsv(currentScenario)},{EscapeCsv(eventName)},{EscapeCsv(trackId)},{EscapeCsv(expectedTrackId)},{EscapeCsv(value)},{EscapeCsv(errorType)}");
+    }
+
+    private void ResetCsvBuffer()
+    {
+        csvRows.Clear();
+        csvRows.Add("timestamp_utc,participant_id,session_id,scenario,event,track_id,expected_track_id,value,error_type");
     }
 
     private void SaveCsv()
@@ -231,7 +249,11 @@ public class ScenarioMetricsManager : MonoBehaviour
             Directory.CreateDirectory(dir);
 
             string safeScenario = currentScenario.Replace(" ", "_").Replace("/", "-");
-            string fileName = $"{outputFilePrefix}_{sessionId}_{safeScenario}_{DateTime.UtcNow:HHmmss}.csv";
+            string safeParticipant = (string.IsNullOrEmpty(participantId) ? "unknown" : participantId)
+                .Trim()
+                .Replace(" ", "_")
+                .Replace("/", "-");
+            string fileName = $"{outputFilePrefix}_{safeParticipant}_{sessionId}_{safeScenario}_{DateTime.UtcNow:HHmmss}.csv";
             string fullPath = Path.Combine(dir, fileName);
 
             StringBuilder sb = new StringBuilder();
@@ -262,5 +284,111 @@ public class ScenarioMetricsManager : MonoBehaviour
         }
 
         return $"\"{raw.Replace("\"", "\"\"")}\"";
+    }
+
+    public void SetParticipantId(string id)
+    {
+        participantId = string.IsNullOrWhiteSpace(id) ? "unknown" : id.Trim();
+
+        if (persistParticipantCounter)
+        {
+            int parsedCounter;
+            if (TryExtractParticipantNumber(participantId, out parsedCounter) && parsedCounter > 0)
+            {
+                PlayerPrefs.SetInt(ParticipantCounterPrefsKey, parsedCounter);
+                PlayerPrefs.Save();
+            }
+        }
+    }
+
+    public void AdvanceParticipantId()
+    {
+        IncrementParticipantId();
+    }
+
+    private void InitializeParticipantId()
+    {
+        int counter = 0;
+
+        if (persistParticipantCounter)
+        {
+            counter = PlayerPrefs.GetInt(ParticipantCounterPrefsKey, 0);
+        }
+
+        if (counter <= 0)
+        {
+            int parsedCounter;
+            if (TryExtractParticipantNumber(participantId, out parsedCounter) && parsedCounter > 0)
+            {
+                counter = parsedCounter;
+            }
+        }
+
+        if (counter <= 0)
+        {
+            counter = 1;
+        }
+
+        participantId = BuildParticipantId(counter);
+
+        if (persistParticipantCounter)
+        {
+            PlayerPrefs.SetInt(ParticipantCounterPrefsKey, counter);
+            PlayerPrefs.Save();
+        }
+    }
+
+    private void IncrementParticipantId()
+    {
+        int current = 0;
+        int parsed;
+        if (TryExtractParticipantNumber(participantId, out parsed))
+        {
+            current = parsed;
+        }
+
+        int next = Mathf.Max(1, current + 1);
+        participantId = BuildParticipantId(next);
+
+        if (persistParticipantCounter)
+        {
+            PlayerPrefs.SetInt(ParticipantCounterPrefsKey, next);
+            PlayerPrefs.Save();
+        }
+
+        if (verboseLogging)
+        {
+            Debug.Log($"[ScenarioMetricsCollector] Next participant ID prepared: {participantId}");
+        }
+    }
+
+    private string BuildParticipantId(int counter)
+    {
+        string prefix = string.IsNullOrEmpty(participantIdPrefix) ? "P" : participantIdPrefix;
+        int padding = Mathf.Clamp(participantIdPadding, 1, 6);
+        return $"{prefix}{counter.ToString($"D{padding}")}";
+    }
+
+    private bool TryExtractParticipantNumber(string id, out int number)
+    {
+        number = 0;
+        if (string.IsNullOrEmpty(id))
+        {
+            return false;
+        }
+
+        int end = id.Length - 1;
+        while (end >= 0 && char.IsDigit(id[end]))
+        {
+            end--;
+        }
+
+        if (end == id.Length - 1)
+        {
+            return false;
+        }
+
+        string numericPart = id.Substring(end + 1);
+        return int.TryParse(numericPart, out number);
     }
 }

@@ -271,8 +271,8 @@ public class tracklabeler : MonoBehaviour
 
             case LabelDisplayMode.FusedUncertaintyAwareIdentity:
             {
-                string identity = GetContactListID();
-                string baseLabel = $"{identity}\nConf: {track.identityConfidence}\nU: {track.positionUncertainty:F0} m";
+                string identity = GetRadarId();
+                string baseLabel = $"{identity}\nConf: {track.identityConfidence}\nUncertainty: {track.positionUncertainty:F0} m";
                 labelText.text = isConfirmed ? $"{baseLabel}\n[{confirmedTag}]" : baseLabel;
                 labelText.color = isConfirmed ? confirmedLabelColor : GetConfidenceColor(track.identityConfidence);
                 break;

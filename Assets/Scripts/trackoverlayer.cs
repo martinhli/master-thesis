@@ -20,6 +20,7 @@ public class trackoverlayer : MonoBehaviour
     private HashSet<string> confirmedLabelKeys = new HashSet<string>();
     private UIManager uiManager;
     private EOIRCameraController eoirController;
+    private UIManager.StudyScenario? lastScenario;
 
     void Update()
     {
@@ -31,6 +32,20 @@ public class trackoverlayer : MonoBehaviour
         if (eoirController == null)
         {
             eoirController = FindFirstObjectByType<EOIRCameraController>();
+        }
+
+        if (uiManager != null)
+        {
+            if (!lastScenario.HasValue)
+            {
+                lastScenario = uiManager.scenario;
+            }
+            else if (lastScenario.Value != uiManager.scenario)
+            {
+                // Scenario transitions should start with clean confirmation overlays.
+                confirmedLabelKeys.Clear();
+                lastScenario = uiManager.scenario;
+            }
         }
 
         if (trackManager == null) return;
@@ -177,6 +192,15 @@ public class trackoverlayer : MonoBehaviour
         activeLabels.Clear();
         labelLastSeenTime.Clear();
         confirmedLabelKeys.Clear();
+
+        if (uiManager != null)
+        {
+            lastScenario = uiManager.scenario;
+        }
+        else
+        {
+            lastScenario = null;
+        }
     }
 
     private List<Track> GetTracksToRender()

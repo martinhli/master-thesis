@@ -38,6 +38,7 @@ public class SimulatedShip : MonoBehaviour
     [Header("Physics Stabilization")]
     public bool disableGravity = true;
     public bool freezeRollAndPitch = true;
+    public bool lockAltitude = true;
 
     [Header("Visual Representation")]
     public Color shipColor = Color.gray;
@@ -47,6 +48,7 @@ public class SimulatedShip : MonoBehaviour
     private MaterialPropertyBlock _propBlock;
     private Vector3 _lastPosition;
     private float _lastUpdateTime;
+    private float _lockedAltitude;
 
     public enum ShipType
     {
@@ -75,6 +77,7 @@ public class SimulatedShip : MonoBehaviour
         // Initialize last position and time for movement calculations
         _lastPosition = transform.position;
         _lastUpdateTime = Time.time;
+        _lockedAltitude = transform.position.y;
 
         // Stabilize dynamic rigidbody ships so they don't tumble while autopilot drives heading.
         if (_rb != null)
@@ -130,10 +133,18 @@ public class SimulatedShip : MonoBehaviour
             Quaternion smoothed = Quaternion.Slerp(_rb.rotation, targetRotation, turnResponsiveness * Time.fixedDeltaTime);
             _rb.MoveRotation(smoothed);
             _rb.angularVelocity = Vector3.zero;
+            
+            // Lock altitude for the cargo ship type to prevent sinking when physics are applied, but allow other ship types to move as normal.
+            if (lockAltitude && shipType == ShipType.Cargo)
+            {
+                Vector3 lockedPosition = _rb.position;
+                lockedPosition.y = _lockedAltitude;
+                _rb.MovePosition(lockedPosition);
+            }
 
-            // Set velocity on horizontal plane only - preserve current Y velocity to prevent drift
+            // Set velocity on horizontal plane only and zero vertical velocity to prevent sinking.
             Vector3 currentVelocity = _rb.linearVelocity;
-            _rb.linearVelocity = new Vector3(courseDirection.x * autopilotSpeed, currentVelocity.y, courseDirection.z * autopilotSpeed);
+            _rb.linearVelocity = new Vector3(courseDirection.x * autopilotSpeed, 0f, courseDirection.z * autopilotSpeed);
         }
     }
 

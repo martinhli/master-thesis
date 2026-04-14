@@ -91,6 +91,7 @@ public class UIManager : MonoBehaviour
     private InputDevice leftController;
     private bool leftControllerActive = false;
     private bool previousLeftGripState = false;
+    private bool previousLeftPrimaryButtonState = false;
     private Canvas scenarioDropdownCanvas;
     private Canvas hudCanvas;
     private Camera eoirReferenceCamera;
@@ -98,6 +99,7 @@ public class UIManager : MonoBehaviour
 
     public bool enableLeftGripScenarioSwitch = true;
     public float leftControllerGripThreshold = 0.55f;
+    public bool enableLeftPrimaryParticipantAdvance = true;
 
     [Header("VR Dropdown Placement")]
     public bool lockScenarioDropdownToHeadset = true;
@@ -150,6 +152,7 @@ public class UIManager : MonoBehaviour
 
     void Update()
     {
+        HandleParticipantAdvanceInput();
         HandleScenarioSwitchInput();
         EnsureScenarioDropdownVisibleInVR();
         AlignMainCameraToEOIRSettings();
@@ -195,19 +198,41 @@ public class UIManager : MonoBehaviour
     public void ConfigureScenario(StudyScenario selectedScenario)
     {
         scenario = selectedScenario;
-        taskCompletedLock = false;
+        ResetTaskStateForScenarioSwitch();
 
         if (scenario == StudyScenario.AISDeterministicBaseline)
         {
             // Reset baseline sequence when entering Scenario 1.
             currentAisTargetIndex = 0;
             aisBaselineTargets.Clear();
-            confirmedTrackIds.Clear();
-            confirmedContacts = 0;
+        }
+        else
+        {
+            currentAisTargetIndex = 0;
+            aisBaselineTargets.Clear();
         }
 
         ApplyScenarioInstructions();
         RefreshRequiredTargetsFromScene();
+        UpdateProgress();
+        UpdateTimer();
+    }
+
+    private void ResetTaskStateForScenarioSwitch()
+    {
+        taskCompletedLock = false;
+        taskActive = false;
+        taskStartTime = Time.time;
+
+        confirmedContacts = 0;
+        totalContacts = 0;
+        confirmedTrackIds.Clear();
+        requiredTargetTrackIds.Clear();
+
+        radarContacts.Clear();
+        nextContactRefreshTime = 0f;
+
+        CancelPendingStatusReset();
     }
 
     public bool IsTrackConfirmed(string trackId)
@@ -324,7 +349,8 @@ public class UIManager : MonoBehaviour
                     "SCENARIO 2: RADAR + EO/IR DEGRADED",
                     "Find unknown radar contacts by looking in the scene and in the sensor contact list." +
                     "Use the EO/IR camera to identify the unknown contact." +
-                    "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B].");
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B]." + 
+                    "Use the [RIGHT TRIGGER] to zoom in and [RIGHT GRIP] to zoom out.");
                 SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
 
@@ -333,7 +359,8 @@ public class UIManager : MonoBehaviour
                     "SCENARIO 3: FUSED UNCERTAINTY-AWARE",
                     "Use the fused AIS/radar labels and uncertainty cues to assess reliability of identified ships." +
                     "Use the EO/IR camera to identify the unknown contact." +
-                    "Move the EO/IR camera with [RIGHT THUMBSTICK] and capture with [A].");
+                    "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B]." + 
+                    "Use the [RIGHT TRIGGER] to zoom in and [RIGHT GRIP] to zoom out.");
                 SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
                 break;
         }
@@ -757,8 +784,16 @@ public class UIManager : MonoBehaviour
             }
             if (statusText != null)
             {
-                statusText.text = isKnown ? "KNOWN" : "UNKNOWN";
-                statusText.color = isKnown ? Color.green : Color.yellow;
+                if (scenario == StudyScenario.FusedUncertaintyAware)
+                {
+                    statusText.text = "TRACKED";
+                    statusText.color = Color.white;
+                }
+                else
+                {
+                    statusText.text = isKnown ? "KNOWN" : "UNKNOWN";
+                    statusText.color = isKnown ? Color.green : Color.yellow;
+                }
             }
             if (statusIcon != null) statusIcon.color = Color.yellow;
 
@@ -838,8 +873,16 @@ public class UIManager : MonoBehaviour
 
             if (statusText != null)
             {
-                statusText.text = confirmed ? "KNOWN" : "UNKNOWN";
-                statusText.color = confirmed ? Color.green : Color.yellow;
+                if (scenario == StudyScenario.FusedUncertaintyAware)
+                {
+                    statusText.text = "TRACKED";
+                    statusText.color = Color.white;
+                }
+                else
+                {
+                    statusText.text = confirmed ? "KNOWN" : "UNKNOWN";
+                    statusText.color = confirmed ? Color.green : Color.yellow;
+                }
             }
         }
 
@@ -865,7 +908,11 @@ public class UIManager : MonoBehaviour
     public void UpdateTimer()
     {
         if (timerText == null) return;
-        float elapsedTime = Time.time - taskStartTime;
+        float elapsedTime = taskActive ? (Time.time - taskStartTime) : 0f;
+        if (elapsedTime < 0f)
+        {
+            elapsedTime = 0f;
+        }
         int minutes = Mathf.FloorToInt(elapsedTime / 60f);
         int seconds = Mathf.FloorToInt(elapsedTime % 60f);
         timerText.text = $"{minutes:00}:{seconds:00}";    
@@ -1195,12 +1242,19 @@ public class UIManager : MonoBehaviour
             return false;
         }
 
-        if (clickedShip == null || aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
+        if (aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
         {
             return false;
         }
 
         SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+        if (clickedShip == null)
+        {
+            SetConfirmationStatus("REJECTED", $"No vessel selected. Looking for MMSI {targetShip.mmsi}", rejectedColor);
+            ScheduleStatusReset();
+            return false;
+        }
+
         if (clickedShip == targetShip)
         {
             string trackId = string.IsNullOrEmpty(clickedShip.mmsi) ? clickedShip.shipName : $"AIS_{clickedShip.mmsi}";
@@ -1276,6 +1330,33 @@ public class UIManager : MonoBehaviour
         OnScenarioDropdownChanged(nextScenarioIndex);
     }
 
+    private void HandleParticipantAdvanceInput()
+    {
+        if (!enableLeftPrimaryParticipantAdvance)
+        {
+            return;
+        }
+
+        if (!TryIsLeftControllerPrimaryButtonPressed())
+        {
+            return;
+        }
+
+        if (metricsCollector == null)
+        {
+            metricsCollector = FindFirstObjectByType<ScenarioMetricsManager>();
+        }
+
+        if (metricsCollector == null)
+        {
+            return;
+        }
+
+        metricsCollector.AdvanceParticipantId();
+        SetConfirmationStatus("INFO", $"Participant advanced to {metricsCollector.participantId}", captureColor);
+        ScheduleStatusReset();
+    }
+
     private void AdvanceToNextAISTarget()
     {
         currentAisTargetIndex++;
@@ -1306,6 +1387,7 @@ public class UIManager : MonoBehaviour
         {
             leftControllerActive = true;
             previousLeftGripState = false;
+            previousLeftPrimaryButtonState = false;
             return true;
         }
 
@@ -1335,6 +1417,7 @@ public class UIManager : MonoBehaviour
         leftController = devices[0];
         leftControllerActive = true;
         previousLeftGripState = false;
+        previousLeftPrimaryButtonState = false;
         return leftController.isValid;
     }
     
@@ -1365,6 +1448,26 @@ public class UIManager : MonoBehaviour
         bool pressedThisFrameFallback = currentGripState && !previousLeftGripState;
         previousLeftGripState = currentGripState;
         return pressedThisFrameFallback;
+    }
+
+    private bool TryIsLeftControllerPrimaryButtonPressed()
+    {
+        if (!TryInitializeLeftController())
+        {
+            previousLeftPrimaryButtonState = false;
+            return false;
+        }
+
+        bool primaryButtonPressed;
+        if (!leftController.TryGetFeatureValue(CommonUsages.primaryButton, out primaryButtonPressed))
+        {
+            previousLeftPrimaryButtonState = false;
+            return false;
+        }
+
+        bool pressedThisFrame = primaryButtonPressed && !previousLeftPrimaryButtonState;
+        previousLeftPrimaryButtonState = primaryButtonPressed;
+        return pressedThisFrame;
     }
 
     private void EnsureAISBaselineReady()

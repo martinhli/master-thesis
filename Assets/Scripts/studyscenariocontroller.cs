@@ -20,11 +20,18 @@ public class StudyScenarioController : MonoBehaviour
         SimulatedShip.ShipType.Passenger
     };
 
+    [Tooltip("Treat Military ships as unknown contacts in Scenario 2 only")]
+    public bool includeMilitaryAsUnknownInScenario2 = true;
+
     [Header("References")]
     public UIManager uiManager;
     public SensorSimulator sensorSimulator;
     public TrackManager trackManager;
     public EOIRCameraController eoirCameraController;
+
+    [Header("EO/IR Controller Runtime")]
+    [Tooltip("Keep EOIRCameraController script enabled in Scenario 1 so left-controller ray/confirm input still runs")]
+    public bool keepEOIRControllerEnabledInScenario1 = true;
 
     [Header("Optional Scenario UI/Objects")]
     [Tooltip("Parent/root object that contains AIS-based overlay visuals")]
@@ -59,6 +66,8 @@ public class StudyScenarioController : MonoBehaviour
                            scenario == UIManager.StudyScenario.FusedUncertaintyAware;
         bool enableEOIR = scenario == UIManager.StudyScenario.RadarEOIRDegraded ||
                           scenario == UIManager.StudyScenario.FusedUncertaintyAware;
+        bool enableEOIRController = enableEOIR ||
+                        (keepEOIRControllerEnabledInScenario1 && scenario == UIManager.StudyScenario.AISDeterministicBaseline);
 
         if (sensorSimulator != null)
         {
@@ -69,7 +78,7 @@ public class StudyScenarioController : MonoBehaviour
 
         if (eoirCameraController != null)
         {
-            eoirCameraController.enabled = enableEOIR;
+            eoirCameraController.enabled = enableEOIRController;
         }
 
         if (aisOverlayRoot != null)
@@ -102,6 +111,8 @@ public class StudyScenarioController : MonoBehaviour
         if (uiManager != null)
         {
             uiManager.ConfigureScenario(scenario);
+            uiManager.PopulateContactList();
+            uiManager.UpdateProgress();
         }
 
         if (clearTracksOnScenarioChange && trackManager != null)
@@ -116,7 +127,7 @@ public class StudyScenarioController : MonoBehaviour
             overlay.ClearAllLabels();
         }
 
-        Debug.Log($"[StudyScenarioController] Applied scenario: {scenario} (AIS={enableAIS}, Radar={enableRadar}, EO/IR={enableEOIR})");
+        Debug.Log($"[StudyScenarioController] Applied scenario: {scenario} (AIS={enableAIS}, Radar={enableRadar}, EO/IR Sensors={enableEOIR}, EO/IR Controller={enableEOIRController})");
     }
 
     private void AutoResolveReferences()
@@ -160,7 +171,10 @@ public class StudyScenarioController : MonoBehaviour
                 continue;
             }
 
-            bool isTaskUnknown = useUnknownTaskMode && unknownContactShipTypes.Contains(ship.shipType);
+            bool isScenario2 = scenario == UIManager.StudyScenario.RadarEOIRDegraded;
+            bool isTaskUnknown = useUnknownTaskMode && (
+                unknownContactShipTypes.Contains(ship.shipType) ||
+                (isScenario2 && includeMilitaryAsUnknownInScenario2 && ship.shipType == SimulatedShip.ShipType.Military));
             ship.aisTransponder = !isTaskUnknown;
         }
     }
