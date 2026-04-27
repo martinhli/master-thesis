@@ -11,7 +11,7 @@ Operators on board airborne surveillance missions face challenges related to:
 * Cognitive load of manually correcting sensor detections
 * Limited situational awareness with traditional 2D displays
 
-## Solution
+## Proposed Solution
 A VR-based interface with AR overlays that accomplishes several tasks. The system fuses AIS data with radar data using Kalman filtering.
 Moreover, uncertainty in those sensors is visualized using confidence indicators. The system allows the operator to take control of the
 EO/IR camera to identify unknown ships. Ultimately, all the necessary information is presented to the operator through AR overlays in 3D.
@@ -134,5 +134,12 @@ cd master-thesis
 2. Build the APK from Unity
    * File -> Build Settings -> Switch to Android
    * Click on Build to save the APK or Build and Run
-   to directly build to the Meta Quest 2 (requires USB connection) 
+   to directly build to the Meta Quest 2 (requires USB connection)
+3. Install the APK to the Meta Quest 2 (if using Build in Unity)
+   * Option A: Move the APK into the SideQuest window
+   * Option B: Use the ADB command line `adb install -r YourApp.apk`
+4. Launch the application on the Meta Quest 2
+   Quest 2 -> Library -> Unknown Sources -> Your App
+
+   
    
