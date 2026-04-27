@@ -93,3 +93,46 @@ end
 SL --> SFTL
 SFTL --> VR
 ```
+## Installation
+### Prerequisites
+* Unity Editor 2022.3 LTS or later
+* Meta Quest 2 VR headset
+* Sidequest or ADB for APK installation
+
+### Project Setup
+1. Clone the repository
+```
+# code block
+git clone https://github.com/yourusername/master-thesis.git
+cd master-thesis
+```
+2. Open in Unity
+   * Launch Unity Hub
+   * Click "Add" -> select project folder
+   * Open with Unity 2022.3 LTS or later version
+3. Install required packages
+   * Open Package Manager (Window -> Package Manager)
+   * Install the packages:
+     * XR Plugin Management
+     * XR Interaction Toolkit (with Starter Assets)
+     * Oculus XR Plugin (via XR Plugin Management)
+4. Configure for Quest 2
+   * File -> Build Settings -> Android
+   * Switch Platform
+   * Player Settings
+     * Package Name: com.YourCompany.Master-thesis
+     * Minimum API Level: Android 10.0 (API 29)
+     * XR Plugin Management -> Oculus -> Enable
+     * Graphics API: OpenGLES3
+     * Stereo Rendering Mode: Multiview
+    
+### Building for Meta Quest 2
+1. Enable Developer Mode on Quest 2
+   * Create Oculus Developer account
+   * Oculus app (phone) -> Devices -> Quest 2
+   * Toggle Developer Mode ON
+2. Build the APK from Unity
+   * File -> Build Settings -> Switch to Android
+   * Click on Build to save the APK or Build and Run
+   to directly build to the Meta Quest 2 (requires USB connection) 
+   
