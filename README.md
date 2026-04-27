@@ -38,4 +38,20 @@ EO/IR camera to identify unknown ships. Ultimately, all the necessary informatio
   * Intuitive controller-based interaction
   * Operator console with interactive display
   * Camera feed display with telemetry information
-  * 
+ 
+## Tasks and Scenarios
+
+Three scenarios were implemented in the VR interface for comparative evaluation. The scenarios with their respective tasks are:
+1. Scenario 1: All ships transmit AIS data with radar and EO/IR sensors turned off and overlays being deterministic.
+   - AIS data with ship identity
+   - Deterministic position markers
+   - Point-and-click on ships to confirm their identity
+2. Scenario 2: Some ships do not transmit AIS data, radar and EO/IR sensors are turned on.
+   - Some ships do not transmit AIS data (unknown contacts)
+   - Radar-based detection
+   - Manual confirmation with EO/IR camera is required
+3. Scenario 3: AIS data from ships and radar data is fused together and overlays are uncertainty-aware.
+   - AIS + radar sensor fusion
+   - Confidence indicators that are color-coded based on degree of confidence
+   - Position uncertainty displayed in the overlay (±XX m)
+   - Manual confirmation with EO/IR camera is required
