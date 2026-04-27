@@ -327,9 +327,9 @@ public class UIManager : MonoBehaviour
         switch (scenario)
         {
             case StudyScenario.AISDeterministicBaseline:
-                string aisInstructions = "Use the AIS labels to locate the ships and confirm their identity." +
-                "Use the sensor contact list and look around the scene to help find and confirm each ship." +
-                "Use the [LEFT TRIGGER] to confirm a ship when you have visually located it in the scene.";
+                string aisInstructions = "Use the AIS labels on the ships to locate the ship with the matching MMSI as CURRENT SHIP AIS MMSI." +
+                "Use the sensor contact list and look around the scene to find and confirm each ship." +
+                "Press the [LEFT TRIGGER] while aiming the left hand controller at a ship to confirm its identity.";
                 if (currentAisTargetIndex < aisBaselineTargets.Count)
                 {
                     SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
@@ -347,7 +347,7 @@ public class UIManager : MonoBehaviour
             case StudyScenario.RadarEOIRDegraded:
                 SetTaskInstructions(
                     "SCENARIO 2: RADAR + EO/IR DEGRADED",
-                    "Find unknown radar contacts by looking in the scene and in the sensor contact list." +
+                    "Find unknown contacts by looking in the scene and in the sensor contact list." +
                     "Use the EO/IR camera to identify the unknown contact." +
                     "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B]." + 
                     "Use the [RIGHT TRIGGER] to zoom in and [RIGHT GRIP] to zoom out.");
@@ -357,8 +357,8 @@ public class UIManager : MonoBehaviour
             case StudyScenario.FusedUncertaintyAware:
                 SetTaskInstructions(
                     "SCENARIO 3: FUSED UNCERTAINTY-AWARE",
-                    "Use the fused AIS/radar labels and uncertainty cues to assess reliability of identified ships." +
-                    "Use the EO/IR camera to identify the unknown contact." +
+                    "Use the fused AIS/radar labels and uncertainty cues to confirm the identity of the most uncertain ships." +
+                    "Use the EO/IR camera to identify the ships with uncertain identities." +
                     "Move the EO/IR camera with [RIGHT THUMBSTICK], capture with [A] and reset view with [B]." + 
                     "Use the [RIGHT TRIGGER] to zoom in and [RIGHT GRIP] to zoom out.");
                 SetConfirmationStatus("READY", "Awaiting target confirmation...", readyColor);
