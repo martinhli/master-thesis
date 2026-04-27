@@ -2,8 +2,7 @@
 
 ## Overview:
 This project implements a virtual reality (VR)-based system for airborne surveillance operators.
-The system fuses data from multiple sources like the Automatic Identification System (AIS), radar and Electro-Optical/Infrared (EO/IR) camera
-and presents real-time augmented reality (AR) overlays with uncertainty visualization directly in the Meta Quest 2 VR environment.
+The system fuses data from multiple sources like the Automatic Identification System (AIS), radar and Electro-Optical/Infrared (EO/IR) camera and presents real-time augmented reality (AR) overlays with uncertainty visualization directly in the Meta Quest 2 VR environment.
 
 ## Problem Statement
 Operators on board airborne surveillance missions face challenges related to:
