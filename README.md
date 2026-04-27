@@ -57,7 +57,7 @@ Three scenarios were implemented in the VR interface for comparative evaluation.
 
 ## System Architecture
 ```mermaid
-flowchart TB
+flowchart LR
 
 %% ========= Styles =========
 classDef sensor fill:#E3F2FD,stroke:#1E88E5,stroke-width:1.5px,color:#0D47A1;
