@@ -55,3 +55,40 @@ Three scenarios were implemented in the VR interface for comparative evaluation.
    - Confidence indicators that are color-coded based on degree of confidence
    - Position uncertainty displayed in the overlay (±XX m)
    - Manual confirmation with EO/IR camera is required
+
+## System Architecture
+┌─────────────────────────────────────────────────────────────┐
+│                      VR Environment                         │
+│  ┌─────────────┐  ┌──────────────┐  ┌──────────────┐        │
+│  │   Quest 2   │  │   Operator   │  │   Aircraft + │        │
+│  │   Headset   │  │   Console    │  │  Sea Plane   │        │
+│  └─────────────┘  └──────────────┘  └──────────────┘        │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│              Sensor Fusion & Tracking Layer                 │
+│  ┌──────────────────────────────────────────────────────┐   │
+│  │  TrackManager: Maintains fused contact tracks        │   │
+│  │  - Kalman Filter (position, velocity estimation)     │   │
+│  │  - Uncertainty propagation                           │   │
+│  │  - Track-to-track association                        │   │
+│  └──────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                    Sensor Layer                             │
+│  ┌──────────┐  ┌──────────┐  ┌───────────────────────┐      │
+│  │   AIS    │  │  Radar   │  │  EO/IR Camera         │      │
+│  │ Simulator│  │ Simulator│  │  (SphereCast detect)  │      │
+│  └──────────┘  └──────────┘  └───────────────────────┘      │
+└─────────────────────────────────────────────────────────────┘
+                            ▲
+                            │
+┌─────────────────────────────────────────────────────────────┐
+│                  Ship Simulation Layer                      │
+│  - 5 simulated ships at a range of around 3-20km            │
+│  - Realistic motion for ships in scene (10 knots, ~5m/s)    │
+│  - Ground truth positions of ships are known                │
+└─────────────────────────────────────────────────────────────┘
