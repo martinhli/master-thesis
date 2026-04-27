@@ -60,34 +60,37 @@ Three scenarios were implemented in the VR interface for comparative evaluation.
 ```mermaid
 flowchart TB
 
-%% =====================
-%% Sensor Layer
-%% =====================
+%% ========= Styles =========
+classDef sensor fill:#E3F2FD,stroke:#1E88E5,stroke-width:1.5px,color:#0D47A1;
+classDef fusion fill:#E8F5E9,stroke:#43A047,stroke-width:1.5px,color:#1B5E20;
+classDef vr fill:#FFF3E0,stroke:#FB8C00,stroke-width:1.5px,color:#E65100;
+
+%% ========= Sensor Layer =========
 subgraph SL["Sensor Layer"]
-    AIS["AIS Simulator"]
-    RADAR["Radar Simulator"]
-    EOIR["EO/IR Camera\n(SphereCast detect)"]
+    direction LR
+    AIS["AIS Simulator"]:::sensor
+    RADAR["Radar Simulator"]:::sensor
+    EOIR["EO/IR Camera<br/>(SphereCast detect)"]:::sensor
 end
 
-%% =====================
-%% Sensor Fusion & Tracking Layer
-%% =====================
+%% ========= Sensor Fusion & Tracking =========
 subgraph SFTL["Sensor Fusion & Tracking Layer"]
-    TM["TrackManager\n- Maintains fused contact tracks\n- Kalman Filter (position, velocity)\n- Uncertainty propagation\n- Track-to-track association"]
+    TM["TrackManager<br/><br/>
+    • Fused contact tracks<br/>
+    • Kalman filtering<br/>
+    • Uncertainty propagation<br/>
+    • Track-to-track association"]:::fusion
 end
 
-%% =====================
-%% VR Environment
-%% =====================
+%% ========= VR Environment =========
 subgraph VR["VR Environment"]
-    QUEST["Quest 2 Headset"]
-    OP["Operator Console"]
-    AC["Aircraft + Sea Plane"]
+    direction LR
+    QUEST["Quest 2 Headset"]:::vr
+    OP["Operator Console"]:::vr
+    AC["Aircraft & Sea Plane"]:::vr
 end
 
-%% =====================
-%% Data Flow
-%% =====================
+%% ========= Data Flow =========
 AIS --> TM
 RADAR --> TM
 EOIR --> TM
