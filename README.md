@@ -57,3 +57,42 @@ Three scenarios were implemented in the VR interface for comparative evaluation.
    - Manual confirmation with EO/IR camera is required
 
 ## System Architecture
+```mermaid
+flowchart TB
+
+%% =====================
+%% Sensor Layer
+%% =====================
+subgraph SL["Sensor Layer"]
+    AIS["AIS Simulator"]
+    RADAR["Radar Simulator"]
+    EOIR["EO/IR Camera\n(SphereCast detect)"]
+end
+
+%% =====================
+%% Sensor Fusion & Tracking Layer
+%% =====================
+subgraph SFTL["Sensor Fusion & Tracking Layer"]
+    TM["TrackManager\n- Maintains fused contact tracks\n- Kalman Filter (position, velocity)\n- Uncertainty propagation\n- Track-to-track association"]
+end
+
+%% =====================
+%% VR Environment
+%% =====================
+subgraph VR["VR Environment"]
+    QUEST["Quest 2 Headset"]
+    OP["Operator Console"]
+    AC["Aircraft + Sea Plane"]
+end
+
+%% =====================
+%% Data Flow
+%% =====================
+AIS --> TM
+RADAR --> TM
+EOIR --> TM
+
+TM --> QUEST
+TM --> OP
+TM --> AC
+```
