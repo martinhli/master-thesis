@@ -84,6 +84,7 @@ end
 
 %% ========= VR Environment =========
 subgraph VR["VR Environment"]
+    direction LR
     QUEST["Quest 2 Headset"]:::vr
     OP["Operator Console"]:::vr
     AC["Aircraft & Sea Plane"]:::vr
