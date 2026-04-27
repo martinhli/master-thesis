@@ -58,7 +58,7 @@ public class UIManager : MonoBehaviour
     public Slider progressBar;
 
     [Header("Test Data")]
-    public List<Track> radarContacts = new List<Track>();
+    public List<Track> currentContacts = new List<Track>();
     public int confirmedContacts = 0;
     public int totalContacts = 0;
     public float taskStartTime;
@@ -79,11 +79,11 @@ public class UIManager : MonoBehaviour
 
     private Dictionary<string, GameObject> contactListItems = new Dictionary<string, GameObject>();
     private HashSet<string> confirmedTrackIds = new HashSet<string>();
-    private HashSet<string> requiredTargetTrackIds = new HashSet<string>();
+    private HashSet<string> requiredTrackIds = new HashSet<string>();
     private Coroutine resetStatusCoroutine;
     private float nextContactRefreshTime;
-    private bool taskCompletedLock;
-    private List<SimulatedShip> aisBaselineTargets = new List<SimulatedShip>();
+    private bool taskCompletedLock = false;
+    private List<SimulatedShip> aisBaselineShips = new List<SimulatedShip>();
     private int currentAisTargetIndex = 0;
     private float aisClickRaycastDistance = 15000f;
     private float aisClickSphereCastRadius = 100f;
@@ -204,12 +204,12 @@ public class UIManager : MonoBehaviour
         {
             // Reset baseline sequence when entering Scenario 1.
             currentAisTargetIndex = 0;
-            aisBaselineTargets.Clear();
+            aisBaselineShips.Clear();
         }
         else
         {
             currentAisTargetIndex = 0;
-            aisBaselineTargets.Clear();
+            aisBaselineShips.Clear();
         }
 
         ApplyScenarioInstructions();
@@ -227,9 +227,9 @@ public class UIManager : MonoBehaviour
         confirmedContacts = 0;
         totalContacts = 0;
         confirmedTrackIds.Clear();
-        requiredTargetTrackIds.Clear();
+        requiredTrackIds.Clear();
 
-        radarContacts.Clear();
+        currentContacts.Clear();
         nextContactRefreshTime = 0f;
 
         CancelPendingStatusReset();
@@ -330,9 +330,9 @@ public class UIManager : MonoBehaviour
                 string aisInstructions = "Use the AIS labels on the ships to locate the ship with the matching MMSI as CURRENT SHIP AIS MMSI." +
                 "Use the sensor contact list and look around the scene to find and confirm each ship." +
                 "Press the [LEFT TRIGGER] while aiming the left hand controller at a ship to confirm its identity.";
-                if (currentAisTargetIndex < aisBaselineTargets.Count)
+                if (currentAisTargetIndex < aisBaselineShips.Count)
                 {
-                    SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+                    SimulatedShip targetShip = aisBaselineShips[currentAisTargetIndex];
                     if (targetShip != null && !string.IsNullOrEmpty(targetShip.mmsi))
                     {
                         aisInstructions += $"\n\nCURRENT SHIP AIS MMSI: {targetShip.mmsi}";
@@ -606,25 +606,23 @@ public class UIManager : MonoBehaviour
         taskStartTime = Time.time;
         confirmedContacts = 0;
         confirmedTrackIds.Clear();
-        radarContacts = contacts;
-        totalContacts = radarContacts.Count;
+        currentContacts = contacts;
+        totalContacts = currentContacts.Count;
         RefreshRequiredTargetsFromScene();
 
         if (metricsCollector != null)
         {
             metricsCollector.BeginTask(scenario.ToString());
-            RegisterTrackAppearances(radarContacts);
+            RegisterTrackAppearances(currentContacts);
         }
         
-        // Initialize AIS Baseline targets if in AIS scenario
         if (scenario == StudyScenario.AISDeterministicBaseline)
         {
-            InitializeAISBaselineTargets();
+            InitializeAISBaselineShips();
         }
         
         nextContactRefreshTime = 0f;
 
-        // Need a function to populate contact list panel with current contacts
         PopulateContactList();
         UpdateProgress();
         UpdateTimer();
@@ -695,7 +693,7 @@ public class UIManager : MonoBehaviour
         contactListItems.Clear();
 
         // Show newest contacts first so operators can quickly map fresh labels to list entries.
-        List<Track> orderedContacts = GetContactsSortedNewestFirst(radarContacts);
+        List<Track> orderedContacts = GetContactsSortedNewestFirst(currentContacts);
         foreach (Track track in orderedContacts)
         {
             CreateContactListItem(track);
@@ -795,7 +793,8 @@ public class UIManager : MonoBehaviour
                     statusText.color = isKnown ? Color.green : Color.yellow;
                 }
             }
-            if (statusIcon != null) statusIcon.color = Color.yellow;
+            // Default to yellow for unknown status, will be updated to green/red if user confirms/rejects.
+            if (statusIcon != null) statusIcon.color = isKnown ? Color.green : Color.yellow;
 
             contactListItems[track.trackid] = item;
         }
@@ -873,6 +872,7 @@ public class UIManager : MonoBehaviour
 
             if (statusText != null)
             {
+                // In the fused scenario, we want to keep the "TRACKED" label but just update the color to reflect confirmation status,
                 if (scenario == StudyScenario.FusedUncertaintyAware)
                 {
                     statusText.text = "TRACKED";
@@ -921,7 +921,7 @@ public class UIManager : MonoBehaviour
     public void UpdateProgress()
     {
         int confirmedTargetCount = GetConfirmedRequiredTargetCount();
-        int requiredTargetCount = requiredTargetTrackIds.Count;
+        int requiredTargetCount = requiredTrackIds.Count;
         bool useTargetCompletion = ShouldUseTargetCompletion();
 
         if (contactsConfirmedText != null)
@@ -1071,7 +1071,7 @@ public class UIManager : MonoBehaviour
 
     private void RefreshRequiredTargetsFromScene()
     {
-        requiredTargetTrackIds.Clear();
+        requiredTrackIds.Clear();
 
         if (scenario == StudyScenario.AISDeterministicBaseline)
         {
@@ -1086,11 +1086,11 @@ public class UIManager : MonoBehaviour
 
                 if (!string.IsNullOrEmpty(ship.mmsi))
                 {
-                    requiredTargetTrackIds.Add($"AIS_{ship.mmsi}");
+                    requiredTrackIds.Add($"AIS_{ship.mmsi}");
                 }
                 else if (!string.IsNullOrEmpty(ship.shipName))
                 {
-                    requiredTargetTrackIds.Add(ship.shipName);
+                    requiredTrackIds.Add(ship.shipName);
                 }
             }
             return;
@@ -1106,11 +1106,11 @@ public class UIManager : MonoBehaviour
 
             if (!string.IsNullOrEmpty(ship.mmsi))
             {
-                requiredTargetTrackIds.Add($"AIS_{ship.mmsi}");
+                requiredTrackIds.Add($"AIS_{ship.mmsi}");
             }
             else if (!string.IsNullOrEmpty(ship.shipName))
             {
-                requiredTargetTrackIds.Add(ship.shipName);
+                requiredTrackIds.Add(ship.shipName);
             }
         }
     }
@@ -1118,7 +1118,7 @@ public class UIManager : MonoBehaviour
     private int GetConfirmedRequiredTargetCount()
     {
         int count = 0;
-        foreach (string requiredId in requiredTargetTrackIds)
+        foreach (string requiredId in requiredTrackIds)
         {
             if (confirmedTrackIds.Contains(requiredId))
             {
@@ -1131,7 +1131,7 @@ public class UIManager : MonoBehaviour
 
     private bool ShouldUseTargetCompletion()
     {
-        return scenario != StudyScenario.AISDeterministicBaseline && requiredTargetTrackIds.Count > 0;
+        return scenario != StudyScenario.AISDeterministicBaseline && requiredTrackIds.Count > 0;
     }
 
     private void RefreshContactList()
@@ -1149,9 +1149,9 @@ public class UIManager : MonoBehaviour
         nextContactRefreshTime = Time.time + Mathf.Max(0.1f, contactListRefreshIntervalSeconds);
 
         List<Track> latestContacts = GetScenarioContactsFromTrackManager();
-        radarContacts = latestContacts;
-        totalContacts = radarContacts.Count;
-        RegisterTrackAppearances(radarContacts);
+        currentContacts = latestContacts;
+        totalContacts = currentContacts.Count;
+        RegisterTrackAppearances(currentContacts);
         PopulateContactList();
     }
 
@@ -1190,9 +1190,9 @@ public class UIManager : MonoBehaviour
         }
     }
 
-    private void InitializeAISBaselineTargets()
+    private void InitializeAISBaselineShips()
     {
-        aisBaselineTargets.Clear();
+        aisBaselineShips.Clear();
         currentAisTargetIndex = 0;
 
         SimulatedShip[] allShips = FindObjectsOfType<SimulatedShip>();
@@ -1200,17 +1200,17 @@ public class UIManager : MonoBehaviour
         {
             if (ship != null && ship.aisTransponder && !string.IsNullOrEmpty(ship.mmsi))
             {
-                aisBaselineTargets.Add(ship);
+                aisBaselineShips.Add(ship);
             }
         }
 
-        Debug.Log($"[UIManager] AIS Baseline: Initialized {aisBaselineTargets.Count} targets to locate.");
+        Debug.Log($"[UIManager] AIS Baseline: Initialized {aisBaselineShips.Count} targets to locate.");
         ApplyScenarioInstructions();
     }
 
     private void HandleAISBaselineInput()
     {
-        if (aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
+        if (aisBaselineShips.Count == 0 || currentAisTargetIndex >= aisBaselineShips.Count)
         {
             return;
         }
@@ -1242,12 +1242,12 @@ public class UIManager : MonoBehaviour
             return false;
         }
 
-        if (aisBaselineTargets.Count == 0 || currentAisTargetIndex >= aisBaselineTargets.Count)
+        if (aisBaselineShips.Count == 0 || currentAisTargetIndex >= aisBaselineShips.Count)
         {
             return false;
         }
 
-        SimulatedShip targetShip = aisBaselineTargets[currentAisTargetIndex];
+        SimulatedShip targetShip = aisBaselineShips[currentAisTargetIndex];
         if (clickedShip == null)
         {
             SetConfirmationStatus("REJECTED", $"No vessel selected. Looking for MMSI {targetShip.mmsi}", rejectedColor);
@@ -1361,7 +1361,7 @@ public class UIManager : MonoBehaviour
     {
         currentAisTargetIndex++;
 
-        if (currentAisTargetIndex >= aisBaselineTargets.Count)
+        if (currentAisTargetIndex >= aisBaselineShips.Count)
         {
             taskCompletedLock = true;
             SetConfirmationStatus("TASK COMPLETE", "All AIS targets have been successfully located and confirmed!", confirmedColor);
@@ -1371,7 +1371,7 @@ public class UIManager : MonoBehaviour
 
         ResetStatus();
         ApplyScenarioInstructions();
-        Debug.Log($"[UIManager] Advancing to target {currentAisTargetIndex + 1} of {aisBaselineTargets.Count}");
+        Debug.Log($"[UIManager] Advancing to target {currentAisTargetIndex + 1} of {aisBaselineShips.Count}");
     }
     
     private bool TryInitializeLeftController()
@@ -1477,13 +1477,13 @@ public class UIManager : MonoBehaviour
             return;
         }
 
-        if (aisBaselineTargets.Count == 0)
+        if (aisBaselineShips.Count == 0)
         {
-            InitializeAISBaselineTargets();
+            InitializeAISBaselineShips();
             RefreshRequiredTargetsFromScene();
         }
 
-        if (!taskActive && aisBaselineTargets.Count > 0)
+        if (!taskActive && aisBaselineShips.Count > 0)
         {
             taskActive = true;
             taskStartTime = Time.time;
