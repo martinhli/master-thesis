@@ -90,11 +90,6 @@ subgraph VR["VR Environment"]
 end
 
 %% ========= Data Flow =========
-AIS --> TM
-RADAR --> TM
-EOIR --> TM
-
-TM --> QUEST
-TM --> OP
-TM --> AC
+SL --> SFTL
+SFTL --> VR
 ```
