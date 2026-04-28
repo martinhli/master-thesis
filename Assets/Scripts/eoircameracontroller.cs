@@ -1353,16 +1353,17 @@ public class EOIRCameraController : MonoBehaviour
 
                 if (contactConfirmed)
                 {
-                    UpdateStatusText($"Contact confirmed ({bestDetection.confidence:P0})");
+                    string confidenceLevel = bestDetection.confidence > 0.8f ? "high" : bestDetection.confidence > 0.6f ? "medium" : "low";
+                    UpdateStatusText($"✓ Confirmed ({confidenceLevel} confidence)");
                 }
                 else
                 {
-                    UpdateStatusText("YOLO detected vessel, but it is not the expected unknown contact. Rejected.");
+                    UpdateStatusText("✗ Wrong contact – aim for the assigned target.");
                 }
             }
             else
             {
-                UpdateStatusText("Contact rejected: YOLO found no vessel in capture.");
+                UpdateStatusText("✗ No vessel detected in frame – adjust aim and retry.");
 
                 if (useRaycastDetection && !tryPhysicsFirst)
                 {
@@ -1642,7 +1643,6 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip raycastShip = SelectBestShipFromHits(rayHits, physicsHitSelectionTolerance);
         if (raycastShip != null)
         {
-            UpdateStatusText($"Ship detected {raycastShip.shipName} by center raycast");
             return raycastShip;
         }
         
@@ -1651,7 +1651,6 @@ public class EOIRCameraController : MonoBehaviour
         SimulatedShip sphereShip = SelectBestShipFromHits(sphereHits, physicsHitSelectionTolerance);
         if (sphereShip != null)
         {
-            UpdateStatusText($"Ship detected {sphereShip.shipName} by spherecast");
             return sphereShip;
         }
         
@@ -1660,7 +1659,6 @@ public class EOIRCameraController : MonoBehaviour
             SimulatedShip fallbackShip = GetBestShipNearReticle(viewportFallbackCenterTolerance);
             if (fallbackShip != null)
             {
-                UpdateStatusText($"Ship detected {fallbackShip.shipName} by viewport fallback");
                 return fallbackShip;
             }
         }
@@ -1846,7 +1844,7 @@ public class EOIRCameraController : MonoBehaviour
     
     private void HandleDetectionSuccess(SimulatedShip ship)
     {
-        string message = $"Ship Detected: {ship.shipName}";
+        string message = $"✓ {ship.shipName} confirmed";
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message} (MMSI: {ship.mmsi})");
@@ -1863,7 +1861,7 @@ public class EOIRCameraController : MonoBehaviour
 
     private void HandleDetectionFailure(SimulatedShip detectedShip)
     {
-        string message = "No valid unknown contact detected - aim camera at one and try again.";
+        string message = "✗ Unable to confirm – check aim and retry.";
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message}");

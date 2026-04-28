@@ -6,6 +6,7 @@ public class cameradisplayer : MonoBehaviour
 {
     [Header("Camera Settings")]
     public Camera eoirCamera;
+    public Transform aircraftTransform;
     
     [Header("Display Settings")]
     public RawImage displayImage;
@@ -82,16 +83,26 @@ public class cameradisplayer : MonoBehaviour
         // Update direction mode
         if (directionText != null)
         {
-            Vector3 forwardFlat = Vector3.ProjectOnPlane(eoirCamera.transform.forward, Vector3.up);
-            if (forwardFlat.sqrMagnitude > 0.0001f)
+            Transform referenceTransform = ResolveAircraftTransform();
+            if (referenceTransform != null)
             {
-                float bearing = Mathf.Atan2(forwardFlat.x, forwardFlat.z) * Mathf.Rad2Deg;
-                if (bearing < 0f)
+                Vector3 referenceFlat = Vector3.ProjectOnPlane(referenceTransform.forward, Vector3.up);
+                Vector3 cameraFlat = Vector3.ProjectOnPlane(eoirCamera.transform.forward, Vector3.up);
+                if (referenceFlat.sqrMagnitude > 0.0001f && cameraFlat.sqrMagnitude > 0.0001f)
                 {
-                    bearing += 360f;
-                }
+                    float bearing = Vector3.SignedAngle(referenceFlat, cameraFlat, Vector3.up);
+                    if (bearing < 0f)
+                    {
+                        // Convert to relative bearing from nose in 0-360 format
+                        bearing = (bearing + 360f) % 360f;
+                    }
 
-                directionText.text = $"BRG: {bearing:000}° ({GetCompassNotation(bearing)})";
+                    directionText.text = $"BRG: {bearing:000}° from nose";
+                }
+                else
+                {
+                    directionText.text = "BRG: ---";
+                }
             }
             else
             {
@@ -141,6 +152,17 @@ public class cameradisplayer : MonoBehaviour
         string[] points = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
         int index = Mathf.RoundToInt(Mathf.Repeat(bearingDegrees, 360f) / 45f) % points.Length;
         return points[index];
+    }
+
+    private Transform ResolveAircraftTransform()
+    {
+        if (aircraftTransform != null)
+            return aircraftTransform;
+
+        if (eoirCamera != null)
+            return eoirCamera.transform.parent;
+
+        return null;
     }
     
     // Public control methods
