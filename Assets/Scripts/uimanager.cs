@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using UnityEngine.Rendering.Universal;
 using TMPro;
@@ -16,6 +17,8 @@ using Debug = UnityEngine.Debug;
 using Vector2 = UnityEngine.Vector2;
 using Vector3 = UnityEngine.Vector3;
 using Quaternion = UnityEngine.Quaternion;
+using InputDevice = UnityEngine.XR.InputDevice;
+using CommonUsages = UnityEngine.XR.CommonUsages;
 
 public class UIManager : MonoBehaviour
 {
@@ -47,7 +50,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI confirmationStatusText;
     public Image statusIcon;
     public TextMeshProUGUI detailText;
-    public Color readyColor = Color.yellow;
+    public Color readyColor = Color.white;
     public Color captureColor = Color.cyan;
     public Color confirmedColor = Color.green;
     public Color rejectedColor = Color.red;
@@ -142,6 +145,8 @@ public class UIManager : MonoBehaviour
 
         // If auto-start is enabled, check for existing tracks and start task if any are found
         TryAutoStartTask();
+
+        
     }
 
     void OnEnable()
@@ -679,7 +684,10 @@ public class UIManager : MonoBehaviour
         {
             detailText.text = details;
         }
+        Debug.Log($"UIManager.SetConfirmationStatus: status={status} color={color}");
     }
+
+    
 
     public void PopulateContactList()
     {
@@ -1218,7 +1226,7 @@ public class UIManager : MonoBehaviour
         bool confirmationPressed = false;
         
         // Check for mouse input
-        if (Input.GetMouseButtonDown(0))
+        if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
         {
             // Ignore clicks on UI elements so dropdown/panels do not trigger ship-selection logic.
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())

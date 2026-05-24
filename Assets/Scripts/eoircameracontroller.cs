@@ -1861,7 +1861,7 @@ public class EOIRCameraController : MonoBehaviour
 
     private void HandleDetectionFailure(SimulatedShip detectedShip)
     {
-        string message = "✗ Unable to confirm – check aim and retry.";
+        string message = "Unable to confirm – check aim and retry.";
         UpdateStatusText(message);
 
         Debug.Log($"[EO/IR] {message}");

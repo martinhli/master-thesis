@@ -36,7 +36,7 @@ public class movecursor : MonoBehaviour
             SetCursorLock(lockNow);
         }
 
-        if (Input.GetKeyDown(KeyCode.Escape))
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             SetCursorLock(false);
         }
@@ -48,7 +48,7 @@ public class movecursor : MonoBehaviour
         }
 
         // Get mouse input (delta movement)
-        Vector2 mouseDelta = new Vector2(Input.GetAxisRaw("Mouse X"), Input.GetAxisRaw("Mouse Y"));
+        Vector2 mouseDelta = Mouse.current != null ? Mouse.current.delta.ReadValue() : Vector2.zero;
 
         // Apply sensitivity and smoothing
         mouseDelta = Vector2.Scale(mouseDelta, new Vector2(sensitivity * smoothing, sensitivity * smoothing));
@@ -84,7 +84,7 @@ public class movecursor : MonoBehaviour
             return Mouse.current.rightButton.isPressed;
         }
 
-        return Input.GetMouseButton(1);
+        return Mouse.current != null && Mouse.current.rightButton.isPressed;
     }
 
     private void SetCursorLock(bool locked)
@@ -100,16 +100,26 @@ public class movecursor : MonoBehaviour
 
     private bool WasToggleKeyPressed()
     {
-        if (Input.GetKeyDown(toggleCursorKey))
-        {
-            return true;
-        }
-
         if (toggleCursorKey == KeyCode.Tab && Keyboard.current != null)
         {
             return Keyboard.current.tabKey.wasPressedThisFrame;
         }
 
-        return false;
+        if (Keyboard.current == null)
+        {
+            return false;
+        }
+
+        return toggleCursorKey switch
+        {
+            KeyCode.Escape => Keyboard.current.escapeKey.wasPressedThisFrame,
+            KeyCode.LeftShift => Keyboard.current.leftShiftKey.wasPressedThisFrame,
+            KeyCode.RightShift => Keyboard.current.rightShiftKey.wasPressedThisFrame,
+            KeyCode.LeftControl => Keyboard.current.leftCtrlKey.wasPressedThisFrame,
+            KeyCode.RightControl => Keyboard.current.rightCtrlKey.wasPressedThisFrame,
+            KeyCode.LeftAlt => Keyboard.current.leftAltKey.wasPressedThisFrame,
+            KeyCode.RightAlt => Keyboard.current.rightAltKey.wasPressedThisFrame,
+            _ => false,
+        };
     }
 }
