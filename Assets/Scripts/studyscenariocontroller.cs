@@ -44,6 +44,11 @@ public class StudyScenarioController : MonoBehaviour
     {
         AutoResolveReferences();
 
+        if (uiManager != null)
+        {
+            selectedScenario = uiManager.scenario;
+        }
+
         if (applyOnStart)
         {
             ApplySelectedScenario();
