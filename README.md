@@ -141,5 +141,19 @@ cd master-thesis
 4. Launch the application on the Meta Quest 2
    Quest 2 -> Library -> Unknown Sources -> Your App
 
+## Acknowledgments
+The 3D model used in this project (aircraft.fbx) was created by Nicolas Barbotin and sourced from AirborneSurveillanceSim Github repository: https://github.com/WearableComputerLab/AirborneSurveillanceSim.
+
+The materials used in this project come from the Unity Asset store, from these packs by Yughues:
+https://assetstore.unity.com/packages/2d/textures-materials/yughues-free-manmade-materials-13005
+https://assetstore.unity.com/packages/2d/textures-materials/fabric/yughues-free-fabric-materials-13002
+https://assetstore.unity.com/packages/2d/textures-materials/metals/yughues-free-metal-materials-12949
+
+The water shader used for the sea plane in this project comes from the Unity Asset store, and was made by IgniteCoders:
+https://assetstore.unity.com/packages/2d/textures-materials/water/simple-water-shader-urp-191449
+
+The ship models used in this project comes from the Unity Asset store, from a pack made by PolygonalAssets:
+https://assetstore.unity.com/packages/3d/vehicles/sea/military-vehicles-sea-232288
+
    
    
